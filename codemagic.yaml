@@ -1,0 +1,62 @@
+workflows:
+  android-apk-debug:
+    name: All Owners - Android APK (Debug/Preview)
+    max_build_duration: 30
+    environment:
+      flutter: stable
+      vars:
+        PACKAGE_NAME: "com.superai.allowners"
+    scripts:
+      - name: Get Flutter packages
+        script: |
+          flutter pub get
+      - name: Generate launcher icons & native splash
+        script: |
+          dart run flutter_launcher_icons
+          dart run flutter_native_splash:create
+      - name: Build APK (release, unsigned/debug-signed)
+        script: |
+          flutter build apk --release
+    artifacts:
+      - build/app/outputs/flutter-apk/*.apk
+    publishing:
+      email:
+        recipients:
+          - your-email@example.com
+        notify:
+          success: true
+          failure: true
+
+  android-apk-release:
+    name: All Owners - Android APK (Signed Release)
+    max_build_duration: 30
+    environment:
+      flutter: stable
+      android_signing:
+        - allowners_keystore
+      vars:
+        PACKAGE_NAME: "com.superai.allowners"
+    scripts:
+      - name: Get Flutter packages
+        script: |
+          flutter pub get
+      - name: Generate launcher icons & native splash
+        script: |
+          dart run flutter_launcher_icons
+          dart run flutter_native_splash:create
+      - name: Build signed APK
+        script: |
+          flutter build apk --release
+      - name: Build App Bundle (for Google Play)
+        script: |
+          flutter build appbundle --release
+    artifacts:
+      - build/app/outputs/flutter-apk/*.apk
+      - build/app/outputs/bundle/release/*.aab
+    publishing:
+      email:
+        recipients:
+          - your-email@example.com
+        notify:
+          success: true
+          failure: true
