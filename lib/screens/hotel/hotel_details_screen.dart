@@ -77,25 +77,19 @@ class _HotelDetailsScreenState extends ConsumerState<HotelDetailsScreen> {
               ),
             ],
             flexibleSpace: FlexibleSpaceBar(
-              background: PageView.builder(
-                itemCount: hotel.galleryUrls.isEmpty ? 1 : hotel.galleryUrls.length,
-                itemBuilder: (context, index) {
-                  final url = hotel.galleryUrls.isEmpty ? hotel.imageUrl : hotel.galleryUrls[index];
-                  return CachedNetworkImage(
-                    imageUrl: url,
-                    fit: BoxFit.cover,
-                    placeholder: (context, url) => Container(
-                      color: AppColors.surfaceMuted,
-                      child: const Center(
-                        child: CircularProgressIndicator(color: AppColors.gold),
-                      ),
-                    ),
-                    errorWidget: (context, url, error) => Container(
-                      color: AppColors.surfaceMuted,
-                      child: Icon(Icons.image_outlined, size: 64, color: AppColors.textMuted),
-                    ),
-                  );
-                },
+              background: CachedNetworkImage(
+                imageUrl: hotel.imageUrl,
+                fit: BoxFit.cover,
+                placeholder: (context, url) => Container(
+                  color: AppColors.surfaceMuted,
+                  child: const Center(
+                    child: CircularProgressIndicator(color: AppColors.gold),
+                  ),
+                ),
+                errorWidget: (context, url, error) => Container(
+                  color: AppColors.surfaceMuted,
+                  child: Icon(Icons.image_outlined, size: 64, color: AppColors.textMuted),
+                ),
               ),
             ),
           ),
@@ -132,7 +126,7 @@ class _HotelDetailsScreenState extends ConsumerState<HotelDetailsScreen> {
                           (i) => const Icon(Icons.star_rounded, size: 14, color: AppColors.goldDark)),
                       const SizedBox(width: 6),
                       Icon(Icons.location_on_outlined, size: 14, color: AppColors.textMuted),
-                      Text(' ${hotel.city(isArabic)} · ${hotel.type(isArabic)}',
+                      Text(' ${hotel.city(isArabic)} . ${hotel.type(isArabic)}',
                           style: textTheme.bodySmall?.copyWith(color: AppColors.textMuted)),
                     ],
                   ),
@@ -140,12 +134,14 @@ class _HotelDetailsScreenState extends ConsumerState<HotelDetailsScreen> {
 
                   Row(
                     children: [
-                      if (hotel.freeCancellation) _Badge(text: AppStrings.t(isArabic, 'free_cancellation'), color: AppColors.success),
-                      if (hotel.breakfastIncluded) ...[
+                      if (hotel.freeCancellation) ...[
+                        _Badge(text: AppStrings.t(isArabic, 'free_cancellation'), color: AppColors.success),
                         const SizedBox(width: AppDimens.sm),
-                        _Badge(text: AppStrings.t(isArabic, 'breakfast_included'), color: AppColors.secondary),
                       ],
-                      const SizedBox(width: AppDimens.sm),
+                      if (hotel.breakfastIncluded) ...[
+                        _Badge(text: AppStrings.t(isArabic, 'breakfast_included'), color: AppColors.secondary),
+                        const SizedBox(width: AppDimens.sm),
+                      ],
                       _Badge(text: AppStrings.t(isArabic, 'pay_at_property'), color: AppColors.goldDark),
                     ],
                   ),
@@ -163,19 +159,26 @@ class _HotelDetailsScreenState extends ConsumerState<HotelDetailsScreen> {
 
                   Text(AppStrings.t(isArabic, 'amenities'), style: textTheme.titleMedium),
                   const SizedBox(height: AppDimens.sm),
-                  Wrap(
-                    spacing: AppDimens.md,
-                    runSpacing: AppDimens.md,
+                  GridView.count(
+                    crossAxisCount: 2,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    mainAxisSpacing: AppDimens.md,
+                    crossAxisSpacing: AppDimens.md,
+                    childAspectRatio: 5,
                     children: List.generate(amenitiesAr.length, (i) {
-                      return SizedBox(
-                        width: (MediaQuery.of(context).size.width - AppDimens.pagePadding * 2 - AppDimens.md) / 2,
-                        child: Row(
-                          children: [
-                            Icon(amenityIcons[i], size: 18, color: AppColors.goldDark),
-                            const SizedBox(width: 8),
-                            Text(isArabic ? amenitiesAr[i] : amenitiesEn[i], style: textTheme.bodySmall),
-                          ],
-                        ),
+                      return Row(
+                        children: [
+                          Icon(amenityIcons[i], size: 18, color: AppColors.goldDark),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              isArabic ? amenitiesAr[i] : amenitiesEn[i],
+                              style: textTheme.bodySmall,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
                       );
                     }),
                   ),
