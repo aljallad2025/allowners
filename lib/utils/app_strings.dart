@@ -192,6 +192,21 @@ class AppStrings {
     },
     'room_number_required': {'ar': 'الرجاء إدخال رقم الغرفة', 'en': 'Please enter your room number'},
     'ok': {'ar': 'حسناً', 'en': 'OK'},
+    'order_meal': {'ar': 'طلب وجبة', 'en': 'Order a Meal'},
+    'order_meal_desc': {
+      'ar': 'اطلب وجبتك المفضلة وسيقوم فريق الفندق بتحضيرها',
+      'en': 'Order your favorite meal and the hotel team will prepare it'
+    },
+    'meal_type': {'ar': 'نوع الوجبة', 'en': 'Meal Type'},
+    'breakfast': {'ar': 'فطور', 'en': 'Breakfast'},
+    'lunch': {'ar': 'غداء', 'en': 'Lunch'},
+    'dinner': {'ar': 'عشاء', 'en': 'Dinner'},
+    'meal_type_required': {'ar': 'الرجاء اختيار نوع الوجبة', 'en': 'Please select a meal type'},
+    'notes': {'ar': 'ملاحظات', 'en': 'Notes'},
+    'notes_hint': {
+      'ar': 'اكتب ملاحظاتك هنا... (مثال: بدون سكر، حساسية من المكسرات)',
+      'en': 'Write your notes here... (e.g. no sugar, nut allergy)'
+    },
   };
 
   static String t(bool isArabic, String key) {
