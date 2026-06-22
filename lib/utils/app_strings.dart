@@ -92,8 +92,10 @@ class AppStrings {
     // ===== Hotel Details =====
     'overview': {'ar': 'نظرة عامة', 'en': 'Overview'},
     'rooms': {'ar': 'الغرف', 'en': 'Rooms'},
-    'reviews': {'ar': 'التقييمات', 'en': 'Reviews'},
+    'reviews': {'ar': 'تقييم', 'en': 'reviews'},
     'location': {'ar': 'الموقع', 'en': 'Location'},
+    'show_more': {'ar': 'عرض المزيد', 'en': 'Show more'},
+    'show_less': {'ar': 'عرض أقل', 'en': 'Show less'},
     'about_property': {'ar': 'عن العقار', 'en': 'About this property'},
     'available_rooms': {'ar': 'الغرف المتاحة', 'en': 'Available Rooms'},
     'select_room': {'ar': 'اختر الغرفة', 'en': 'Select Room'},
