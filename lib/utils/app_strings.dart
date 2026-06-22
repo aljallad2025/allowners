@@ -207,6 +207,31 @@ class AppStrings {
       'ar': 'اكتب ملاحظاتك هنا... (مثال: بدون سكر، حساسية من المكسرات)',
       'en': 'Write your notes here... (e.g. no sugar, nut allergy)'
     },
+
+    // ===== Roles & Owner Dashboard =====
+    'account_type': {'ar': 'نوع الحساب', 'en': 'Account Type'},
+    'role_owner': {'ar': 'مالك', 'en': 'Owner'},
+    'role_guest': {'ar': 'ضيف', 'en': 'Guest'},
+    'coming_soon_desc': {
+      'ar': 'هذه الميزة قيد التطوير وستكون متوفرة قريباً',
+      'en': 'This feature is under development and will be available soon'
+    },
+    'nav_units': {'ar': 'وحداتي', 'en': 'My Units'},
+    'nav_revenue': {'ar': 'الإيرادات', 'en': 'Revenue'},
+    'quick_links': {'ar': 'روابط سريعة', 'en': 'Quick Links'},
+    'owner_bookings': {'ar': 'الحجوزات', 'en': 'Bookings'},
+    'financial_reports': {'ar': 'التقارير المالية', 'en': 'Financial Reports'},
+    'contracts_docs': {'ar': 'العقود والمستندات', 'en': 'Contracts & Documents'},
+    'maintenance_requests': {'ar': 'طلبات الصيانة', 'en': 'Maintenance Requests'},
+    'voting_decisions': {'ar': 'التصويت والقرارات', 'en': 'Voting & Decisions'},
+    'owners_community': {'ar': 'مجتمع الملاك', 'en': 'Owners Community'},
+    'units_marketplace': {'ar': 'سوق الوحدات', 'en': 'Units Marketplace'},
+    'messages': {'ar': 'الرسائل', 'en': 'Messages'},
+    'occupied': {'ar': 'مؤجرة', 'en': 'Occupied'},
+    'vacant': {'ar': 'متاحة', 'en': 'Vacant'},
+    'monthly_revenue': {'ar': 'الإيراد الشهري', 'en': 'Monthly Revenue'},
+    'total_revenue_month': {'ar': 'إجمالي إيرادات هذا الشهر', 'en': 'Total Revenue This Month'},
+    'revenue_history': {'ar': 'سجل الإيرادات', 'en': 'Revenue History'},
   };
 
   static String t(bool isArabic, String key) {
