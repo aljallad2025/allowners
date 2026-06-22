@@ -1,4 +1,25 @@
-workflows:
+﻿workflows:
+  android-apk-debug-real:
+    name: All Owners - REAL DEBUG (shows actual errors)
+    max_build_duration: 30
+    environment:
+      flutter: stable
+      vars:
+        PACKAGE_NAME: "com.superai.allowners"
+    scripts:
+      - name: Get Flutter packages
+        script: |
+          flutter pub get
+      - name: Generate launcher icons and native splash
+        script: |
+          dart run flutter_launcher_icons
+          dart run flutter_native_splash:create
+      - name: Build APK debug mode
+        script: |
+          flutter build apk --debug
+    artifacts:
+      - build/app/outputs/flutter-apk/*.apk
+
   android-apk-debug:
     name: All Owners - Android APK (Debug/Preview)
     max_build_duration: 30
