@@ -162,6 +162,36 @@ class AppStrings {
     'nav_bookings': {'ar': 'حجوزاتي', 'en': 'Bookings'},
     'nav_favorites': {'ar': 'المفضلة', 'en': 'Favorites'},
     'nav_profile': {'ar': 'حسابي', 'en': 'Profile'},
+
+    // ===== Hotel Services =====
+    'available_services': {'ar': 'الخدمات المتاحة', 'en': 'Available Services'},
+    'hotel_services': {'ar': 'خدمات الفندق', 'en': 'Hotel Services'},
+    'maintenance': {'ar': 'الصيانة', 'en': 'Maintenance'},
+    'maintenance_desc': {
+      'ar': 'اطلب فني للإصلاحات داخل الغرفة',
+      'en': 'Request a technician for in-room repairs'
+    },
+    'housekeeping': {'ar': 'الهاوس كيبنج', 'en': 'Housekeeping'},
+    'housekeeping_desc': {
+      'ar': 'اطلب تنظيف الغرفة أو تغيير المناشف',
+      'en': 'Request room cleaning or fresh towels'
+    },
+    'cancellation_request': {'ar': 'طلب إلغاء', 'en': 'Cancellation Request'},
+    'cancellation_request_desc': {
+      'ar': 'تقديم طلب إلغاء حجز أو خدمة',
+      'en': 'Submit a booking or service cancellation request'
+    },
+    'room_number': {'ar': 'رقم الغرفة', 'en': 'Room Number'},
+    'request_details': {'ar': 'تفاصيل الطلب', 'en': 'Request Details'},
+    'describe_request': {'ar': 'اكتب تفاصيل طلبك هنا...', 'en': 'Describe your request here...'},
+    'submit_request': {'ar': 'إرسال الطلب', 'en': 'Submit Request'},
+    'request_submitted_title': {'ar': 'تم استلام طلبك', 'en': 'Request Received'},
+    'request_submitted_desc': {
+      'ar': 'سيقوم فريق الفندق بمتابعة طلبك في أقرب وقت ممكن',
+      'en': 'The hotel team will follow up on your request as soon as possible'
+    },
+    'room_number_required': {'ar': 'الرجاء إدخال رقم الغرفة', 'en': 'Please enter your room number'},
+    'ok': {'ar': 'حسناً', 'en': 'OK'},
   };
 
   static String t(bool isArabic, String key) {

@@ -5,6 +5,7 @@ import '../../theme/app_dimens.dart';
 import '../../utils/app_strings.dart';
 import '../../utils/locale_provider.dart';
 import '../auth/login_screen.dart';
+import '../services/hotel_services_screen.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -43,6 +44,13 @@ class ProfileScreen extends ConsumerWidget {
 
               _MenuSection(items: [
                 _MenuItem(icon: Icons.credit_card_outlined, label: AppStrings.t(isArabic, 'payment_methods'), onTap: () {}),
+                _MenuItem(
+                  icon: Icons.room_service_outlined,
+                  label: AppStrings.t(isArabic, 'available_services'),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const HotelServicesScreen()),
+                  ),
+                ),
                 _MenuItem(icon: Icons.notifications_outlined, label: AppStrings.t(isArabic, 'notifications'), onTap: () {}),
                 _MenuItem(
                   icon: Icons.language_rounded,
