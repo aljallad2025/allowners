@@ -1,4 +1,4 @@
-﻿workflows:
+workflows:
   android-apk-debug-real:
     name: All Owners - REAL DEBUG (shows actual errors)
     max_build_duration: 30
@@ -48,8 +48,8 @@
           success: true
           failure: true
 
-  android-apk-release:
-    name: All Owners - Android APK (Signed Release)
+  android-aab-release:
+    name: All Owners - AAB (Signed Release for Google Play)
     max_build_duration: 30
     environment:
       flutter: stable
@@ -65,14 +65,10 @@
         script: |
           dart run flutter_launcher_icons
           dart run flutter_native_splash:create
-      - name: Build signed APK
-        script: |
-          flutter build apk --release
-      - name: Build App Bundle (for Google Play)
+      - name: Build App Bundle (AAB) for Google Play
         script: |
           flutter build appbundle --release
     artifacts:
-      - build/app/outputs/flutter-apk/*.apk
       - build/app/outputs/bundle/release/*.aab
     publishing:
       email:
