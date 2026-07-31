@@ -77,3 +77,20 @@ workflows:
         notify:
           success: true
           failure: true
+
+  generate-keystore-once:
+    name: TEMP - Generate Keystore Only
+    max_build_duration: 10
+    environment:
+      flutter: stable
+    scripts:
+      - name: Generate keystore
+        script: |
+          keytool -genkey -v -keystore allowners-release.keystore \
+            -storetype JKS -keyalg RSA -keysize 2048 -validity 10000 \
+            -alias allowners \
+            -storepass Allowners@2026 \
+            -keypass Allowners@2026 \
+            -dname "CN=Thaer Al-Jallad, OU=Super AI, O=Super AI, L=Manama, S=Capital, C=BH"
+    artifacts:
+      - allowners-release.keystore
