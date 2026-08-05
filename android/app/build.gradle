@@ -1,4 +1,4 @@
-﻿plugins {
+plugins {
     id "com.android.application"
     id "kotlin-android"
     id "dev.flutter.flutter-gradle-plugin"
@@ -50,7 +50,7 @@ android {
 
     signingConfigs {
         release {
-            if (System.getenv()["CM_KEYSTORE"]) {
+            if (System.getenv()["CM_KEYSTORE_PATH"]) {
                 storeFile file(System.getenv()["CM_KEYSTORE_PATH"])
                 storePassword System.getenv()["CM_KEYSTORE_PASSWORD"]
                 keyAlias System.getenv()["CM_KEY_ALIAS"]
@@ -61,7 +61,7 @@ android {
 
     buildTypes {
         release {
-            signingConfig = System.getenv()["CM_KEYSTORE"] ? signingConfigs.release : signingConfigs.debug
+            signingConfig = System.getenv()["CM_KEYSTORE_PATH"] ? signingConfigs.release : signingConfigs.debug
             minifyEnabled false
             shrinkResources false
         }
@@ -70,8 +70,4 @@ android {
 
 flutter {
     source '../..'
-}
-
-dependencies {
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
 }
