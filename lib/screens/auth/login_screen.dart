@@ -83,7 +83,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SizedBox(height: AppDimens.xl),
-                Center(child: Image.asset('assets/images/logo.png', width: 110)),
+                Center(child: Image.asset('assets/images/logo.png', width: 140)),
                 const SizedBox(height: AppDimens.xl),
                 Text(
                   AppStrings.t(isArabic, 'welcome_back'),

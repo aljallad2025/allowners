@@ -106,6 +106,24 @@ class OwnerService {
     }
   }
 
+  Future<void> createDecision({
+    required int hotelId,
+    required String title,
+    String? description,
+    required List<String> options,
+  }) async {
+    try {
+      await _dio.post('/decisions/create.php', data: {
+        'hotel_id': hotelId,
+        'title': title,
+        if (description != null) 'description': description,
+        'options': options,
+      });
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
   Future<List<Map<String, dynamic>>> getCommunityPosts() async {
     try {
       final res = await _dio.get('/community/list.php');

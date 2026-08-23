@@ -7,12 +7,12 @@ class AppColors {
   AppColors._();
 
   // ===== الأساسية =====
-  static const Color gold = Color(0xFFC9A23B); // ذهبي اللوجو
-  static const Color goldLight = Color(0xFFE3C878);
-  static const Color goldDark = Color(0xFFA3801F);
+  static const Color gold = Color(0xFFE0B94F); // ذهبي اللوجو الرسمي
+  static const Color goldLight = Color(0xFFF3D98A);
+  static const Color goldDark = Color(0xFFB3872A);
 
-  static const Color ink = Color(0xFF14151A); // أسود-كحلي قريب للوجو
-  static const Color inkLight = Color(0xFF3A3D46);
+  static const Color ink = Color(0xFF01122E); // كحلي اللوجو الرسمي
+  static const Color inkLight = Color(0xFF1C3A63);
 
   static const Color silver = Color(0xFFB8BCC4); // فضي اللوجو (تفاصيل ثانوية)
 
@@ -49,7 +49,7 @@ class AppColors {
   static const LinearGradient darkOverlayGradient = LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
-    colors: [Colors.transparent, Color(0xCC14151A)],
+    colors: [Colors.transparent, Color(0xCC01122E)],
   );
 
   static const LinearGradient heroDarkGradient = LinearGradient(

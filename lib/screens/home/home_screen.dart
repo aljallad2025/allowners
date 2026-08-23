@@ -104,7 +104,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     AppDimens.pagePadding, AppDimens.md, AppDimens.pagePadding, 0),
                 child: Row(
                   children: [
-                    Image.asset('assets/images/logo.png', width: 38),
+                    Image.asset('assets/images/logo.png', width: 44),
                     const SizedBox(width: AppDimens.sm),
                     Expanded(
                       child: Column(

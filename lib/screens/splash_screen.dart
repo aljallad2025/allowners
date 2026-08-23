@@ -71,7 +71,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Image.asset('assets/images/logo.png', width: 180),
+                Image.asset('assets/images/logo.png', width: 230),
                 const SizedBox(height: 16),
                 ShaderMask(
                   shaderCallback: (bounds) => AppColors.goldGradient.createShader(bounds),

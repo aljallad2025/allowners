@@ -272,6 +272,12 @@ class AppStrings {
     'decision_open': {'ar': 'مفتوح للتصويت', 'en': 'Open for voting'},
     'decision_closed': {'ar': 'انتهى التصويت', 'en': 'Voting closed'},
     'vote_submitted': {'ar': 'تم تسجيل صوتك', 'en': 'Your vote has been recorded'},
+    'new_decision': {'ar': 'قرار جديد للتصويت', 'en': 'New Decision'},
+    'decision_title': {'ar': 'عنوان القرار', 'en': 'Decision Title'},
+    'voting_options': {'ar': 'خيارات التصويت', 'en': 'Voting Options'},
+    'option_label': {'ar': 'خيار', 'en': 'Option'},
+    'add_option': {'ar': 'إضافة خيار', 'en': 'Add option'},
+    'decision_created': {'ar': 'تم إنشاء القرار للتصويت', 'en': 'Decision created for voting'},
 
     // ===== Community =====
     'no_posts': {'ar': 'لا توجد منشورات بعد، كن أول من ينشر', 'en': 'No posts yet — be the first to share'},
