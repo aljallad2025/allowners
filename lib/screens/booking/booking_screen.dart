@@ -28,6 +28,8 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
   int _guests = 2;
   DateTime _checkIn = DateTime.now().add(const Duration(days: 1));
   DateTime _checkOut = DateTime.now().add(const Duration(days: 3));
+  String _mealType = 'none';
+  bool _extraBed = false;
   final _cardNumberController = TextEditingController();
   final _expiryController = TextEditingController();
   final _cvvController = TextEditingController();
@@ -101,6 +103,8 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
         cardNumber: _paymentMethod == PaymentMethod.online
             ? _cardNumberController.text.replaceAll(RegExp(r'\D'), '')
             : null,
+        mealType: _mealType,
+        extraBed: _extraBed,
       );
 
       if (!mounted) return;
@@ -244,6 +248,59 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                         ),
                       ],
                     ),
+                    const SizedBox(height: AppDimens.lg),
+
+                    Text(AppStrings.t(isArabic, 'meal_type'), style: textTheme.titleMedium),
+                    const SizedBox(height: AppDimens.sm),
+                    Wrap(
+                      spacing: AppDimens.sm,
+                      runSpacing: AppDimens.sm,
+                      children: ['none', 'breakfast', 'lunch', 'dinner', 'all'].map((m) {
+                        final selected = _mealType == m;
+                        return ChoiceChip(
+                          label: Text(AppStrings.t(isArabic, 'meal_option_$m')),
+                          selected: selected,
+                          onSelected: (_) => setState(() => _mealType = m),
+                          selectedColor: AppColors.gold.withOpacity(0.2),
+                          labelStyle: TextStyle(color: selected ? AppColors.goldDark : AppColors.textMuted, fontWeight: selected ? FontWeight.w700 : FontWeight.w400),
+                        );
+                      }).toList(),
+                    ),
+
+                    if (widget.hotel.extraBedPrice != null) ...[
+                      const SizedBox(height: AppDimens.lg),
+                      Container(
+                        padding: const EdgeInsets.all(AppDimens.md),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+                          border: Border.all(color: AppColors.cardBorder),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(AppStrings.t(isArabic, 'add_extra_bed'), style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+                                  Text(
+                                    widget.hotel.extraBedPrice == 0
+                                        ? AppStrings.t(isArabic, 'free')
+                                        : '+${widget.hotel.extraBedPrice!.toStringAsFixed(0)} ${AppStrings.t(isArabic, 'sar')} / ${AppStrings.t(isArabic, 'night')}',
+                                    style: textTheme.bodySmall?.copyWith(color: AppColors.textMuted),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Switch(
+                              value: _extraBed,
+                              activeColor: AppColors.gold,
+                              onChanged: (v) => setState(() => _extraBed = v),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: AppDimens.lg),
 
                     Text(AppStrings.t(isArabic, 'payment_method'), style: textTheme.titleMedium),

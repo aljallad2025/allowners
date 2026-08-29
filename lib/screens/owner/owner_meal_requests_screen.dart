@@ -5,64 +5,67 @@ import '../../theme/app_dimens.dart';
 import '../../utils/app_strings.dart';
 import '../../utils/locale_provider.dart';
 import '../../services/owner_service.dart';
+import '../../services/api_client.dart';
 
-class OwnerBookingsScreen extends ConsumerStatefulWidget {
-  const OwnerBookingsScreen({super.key});
+class OwnerMealRequestsScreen extends ConsumerStatefulWidget {
+  const OwnerMealRequestsScreen({super.key});
 
   @override
-  ConsumerState<OwnerBookingsScreen> createState() => _OwnerBookingsScreenState();
+  ConsumerState<OwnerMealRequestsScreen> createState() => _OwnerMealRequestsScreenState();
 }
 
-class _OwnerBookingsScreenState extends ConsumerState<OwnerBookingsScreen> {
+class _OwnerMealRequestsScreenState extends ConsumerState<OwnerMealRequestsScreen> {
   final _service = OwnerService();
-  late Future<Map<String, dynamic>> _future;
-  int? _cancellingId;
+  late Future<List<Map<String, dynamic>>> _future;
+  int? _updatingId;
+
+  static const _statusFlow = ['pending', 'preparing', 'delivered'];
 
   @override
   void initState() {
     super.initState();
-    _future = _service.getBookings();
+    _future = _service.getMealRequests();
   }
 
-  void _reload() => setState(() => _future = _service.getBookings());
-
-  Future<void> _cancelBooking(bool isArabic, int bookingId) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(AppStrings.t(isArabic, 'confirm_cancel_booking')),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(AppStrings.t(isArabic, 'cancel'))),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(AppStrings.t(isArabic, 'confirm'), style: const TextStyle(color: AppColors.danger)),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
-
-    setState(() => _cancellingId = bookingId);
-    try {
-      await _service.cancelBooking(bookingId);
-      _reload();
-    } on ApiException catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
-    } finally {
-      if (mounted) setState(() => _cancellingId = null);
-    }
-  }
+  void _reload() => setState(() => _future = _service.getMealRequests());
 
   Color _statusColor(String status) {
     switch (status) {
-      case 'confirmed':
-      case 'checked_in':
-      case 'completed':
+      case 'delivered':
         return AppColors.success;
+      case 'preparing':
+        return AppColors.secondary;
       case 'cancelled':
         return AppColors.danger;
       default:
         return AppColors.warning;
+    }
+  }
+
+  String _mealIcon(String type) {
+    switch (type) {
+      case 'breakfast':
+        return '🍳';
+      case 'lunch':
+        return '🍲';
+      default:
+        return '🍽️';
+    }
+  }
+
+  Future<void> _advanceStatus(bool isArabic, int id, String currentStatus) async {
+    final idx = _statusFlow.indexOf(currentStatus);
+    if (idx == -1 || idx >= _statusFlow.length - 1) return;
+    final nextStatus = _statusFlow[idx + 1];
+
+    setState(() => _updatingId = id);
+    try {
+      await _service.updateMealRequestStatus(requestId: id, status: nextStatus);
+      _reload();
+    } on ApiException catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    } finally {
+      if (mounted) setState(() => _updatingId = null);
     }
   }
 
@@ -76,12 +79,12 @@ class _OwnerBookingsScreenState extends ConsumerState<OwnerBookingsScreen> {
       appBar: AppBar(
         backgroundColor: AppColors.surface,
         elevation: 0,
-        title: Text(AppStrings.t(isArabic, 'owner_bookings')),
+        title: Text(AppStrings.t(isArabic, 'meal_requests')),
       ),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async => _reload(),
-          child: FutureBuilder<Map<String, dynamic>>(
+          child: FutureBuilder<List<Map<String, dynamic>>>(
             future: _future,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
@@ -101,14 +104,14 @@ class _OwnerBookingsScreenState extends ConsumerState<OwnerBookingsScreen> {
                 );
               }
 
-              final bookings = (snapshot.data?['bookings'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
-              if (bookings.isEmpty) {
+              final requests = snapshot.data ?? [];
+              if (requests.isEmpty) {
                 return ListView(
                   physics: const AlwaysScrollableScrollPhysics(),
                   children: [
                     Padding(
                       padding: const EdgeInsets.all(AppDimens.xl),
-                      child: Center(child: Text(AppStrings.t(isArabic, 'no_bookings'))),
+                      child: Center(child: Text(AppStrings.t(isArabic, 'no_meal_requests'))),
                     ),
                   ],
                 );
@@ -116,14 +119,13 @@ class _OwnerBookingsScreenState extends ConsumerState<OwnerBookingsScreen> {
 
               return ListView.separated(
                 padding: const EdgeInsets.all(AppDimens.pagePadding),
-                itemCount: bookings.length,
+                itemCount: requests.length,
                 separatorBuilder: (context, index) => const SizedBox(height: AppDimens.md),
                 itemBuilder: (context, index) {
-                  final b = bookings[index];
-                  final status = (b['status'] ?? 'pending').toString();
-                  final guestName = (b['guest_name'] ?? AppStrings.t(isArabic, 'guest')).toString();
-                  final unitName = isArabic ? (b['unit_name'] ?? '') : (b['unit_name_en'] ?? b['unit_name'] ?? '');
-                  final total = (b['total'] is num) ? (b['total'] as num).toStringAsFixed(0) : '0';
+                  final r = requests[index];
+                  final status = (r['status'] ?? 'pending').toString();
+                  final mealType = (r['meal_type'] ?? '').toString();
+                  final canAdvance = _statusFlow.contains(status) && status != 'delivered';
 
                   return Container(
                     padding: const EdgeInsets.all(AppDimens.md),
@@ -137,7 +139,10 @@ class _OwnerBookingsScreenState extends ConsumerState<OwnerBookingsScreen> {
                       children: [
                         Row(
                           children: [
-                            Expanded(child: Text(guestName, style: textTheme.titleSmall)),
+                            Expanded(
+                              child: Text('${_mealIcon(mealType)} ${AppStrings.t(isArabic, 'meal_$mealType')}',
+                                  style: textTheme.titleSmall),
+                            ),
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                               decoration: BoxDecoration(
@@ -145,38 +150,31 @@ class _OwnerBookingsScreenState extends ConsumerState<OwnerBookingsScreen> {
                                 borderRadius: BorderRadius.circular(AppDimens.radiusSm),
                               ),
                               child: Text(
-                                AppStrings.t(isArabic, 'status_$status'),
+                                AppStrings.t(isArabic, 'meal_status_$status'),
                                 style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _statusColor(status)),
                               ),
                             ),
                           ],
                         ),
                         const SizedBox(height: 4),
-                        Text('${b['hotel_name'] ?? ''} — $unitName', style: textTheme.bodySmall?.copyWith(color: AppColors.textMuted)),
-                        const Divider(height: AppDimens.lg),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('${AppStrings.t(isArabic, 'check_in')}: ${b['check_in']}', style: textTheme.bodySmall),
-                            Text('${AppStrings.t(isArabic, 'check_out')}: ${b['check_out']}', style: textTheme.bodySmall),
-                          ],
+                        Text(
+                          '${r['hotel_name'] ?? ''} — ${AppStrings.t(isArabic, 'room')} ${r['room_number'] ?? ''}',
+                          style: textTheme.bodySmall?.copyWith(color: AppColors.textMuted),
                         ),
-                        const SizedBox(height: 6),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(AppStrings.t(isArabic, 'total_amount'), style: textTheme.bodySmall?.copyWith(color: AppColors.textSecondary)),
-                            Text('$total ${AppStrings.t(isArabic, 'sar')}', style: textTheme.titleSmall?.copyWith(color: AppColors.goldDark)),
-                          ],
-                        ),
-                        if (b['can_cancel'] == true) ...[
+                        if (r['guest_name'] != null)
+                          Text(r['guest_name'].toString(), style: textTheme.bodySmall?.copyWith(color: AppColors.textMuted)),
+                        if ((r['notes'] ?? '').toString().isNotEmpty) ...[
                           const SizedBox(height: AppDimens.sm),
-                          SizedBox(
-                            width: double.infinity,
+                          Text(r['notes'].toString(), style: textTheme.bodyMedium),
+                        ],
+                        if (canAdvance) ...[
+                          const SizedBox(height: AppDimens.sm),
+                          Align(
+                            alignment: Alignment.centerLeft,
                             child: OutlinedButton(
-                              style: OutlinedButton.styleFrom(foregroundColor: AppColors.danger, side: const BorderSide(color: AppColors.danger)),
-                              onPressed: _cancellingId == b['id'] ? null : () => _cancelBooking(isArabic, b['id'] as int),
-                              child: Text(AppStrings.t(isArabic, 'cancel_booking')),
+                              onPressed: _updatingId == r['id'] ? null : () => _advanceStatus(isArabic, r['id'] as int, status),
+                              child: Text(AppStrings.t(
+                                  isArabic, status == 'pending' ? 'mark_preparing' : 'mark_delivered')),
                             ),
                           ),
                         ],

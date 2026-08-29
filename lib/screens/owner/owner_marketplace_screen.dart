@@ -27,10 +27,33 @@ class _OwnerMarketplaceScreenState extends ConsumerState<OwnerMarketplaceScreen>
   void _reload() => setState(() => _future = _service.getMarketplaceListings());
 
   Future<void> _openNewListingSheet(bool isArabic) async {
-    final titleCtrl = TextEditingController();
+    List<Map<String, dynamic>> units = [];
+    String? loadError;
+    try {
+      units = await _service.getUnits();
+    } on ApiException catch (e) {
+      loadError = e.message;
+    } catch (e) {
+      loadError = e.toString();
+    }
+    if (!mounted) return;
+
+    if (loadError != null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(loadError)));
+      return;
+    }
+    if (units.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppStrings.t(isArabic, 'no_units_available'))));
+      return;
+    }
+
+    final priceCtrl = TextEditingController(
+      text: (units.first['price_per_night'] as num?)?.toStringAsFixed(0) ?? '',
+    );
     final descCtrl = TextEditingController();
-    final priceCtrl = TextEditingController();
-    String listingType = 'sale';
+    final contactCtrl = TextEditingController();
+    int? selectedUnitId = units.first['id'] as int;
+    bool submitting = false;
 
     await showModalBottomSheet(
       context: context,
@@ -50,45 +73,74 @@ class _OwnerMarketplaceScreenState extends ConsumerState<OwnerMarketplaceScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(AppStrings.t(isArabic, 'add_listing'), style: Theme.of(ctx).textTheme.titleMedium),
+                  const SizedBox(height: AppDimens.sm),
+                  Text(AppStrings.t(isArabic, 'nightly_rental_hint'),
+                      style: Theme.of(ctx).textTheme.bodySmall?.copyWith(color: AppColors.textMuted)),
                   const SizedBox(height: AppDimens.md),
-                  TextField(controller: titleCtrl, decoration: InputDecoration(labelText: AppStrings.t(isArabic, 'listing_title'))),
-                  const SizedBox(height: AppDimens.md),
-                  DropdownButtonFormField<String>(
-                    value: listingType,
-                    decoration: InputDecoration(labelText: AppStrings.t(isArabic, 'listing_type')),
-                    items: [
-                      DropdownMenuItem(value: 'sale', child: Text(AppStrings.t(isArabic, 'for_sale'))),
-                      DropdownMenuItem(value: 'rent', child: Text(AppStrings.t(isArabic, 'for_rent'))),
-                    ],
-                    onChanged: (v) => setSheetState(() => listingType = v ?? 'sale'),
+                  DropdownButtonFormField<int>(
+                    value: selectedUnitId,
+                    decoration: InputDecoration(labelText: AppStrings.t(isArabic, 'select_unit')),
+                    items: units
+                        .map((u) => DropdownMenuItem<int>(
+                              value: u['id'] as int,
+                              child: Text('${u['hotel_name']} — ${u['name_ar']}', overflow: TextOverflow.ellipsis),
+                            ))
+                        .toList(),
+                    onChanged: (v) {
+                      setSheetState(() {
+                        selectedUnitId = v;
+                        // تعبئة السعر تلقائياً من بيانات الوحدة الحقيقية (نفس السعر المعروض للزبائن)
+                        final unit = units.firstWhere((u) => u['id'] == v);
+                        final unitPrice = (unit['price_per_night'] as num?)?.toStringAsFixed(0);
+                        if (unitPrice != null) priceCtrl.text = unitPrice;
+                      });
+                    },
                   ),
                   const SizedBox(height: AppDimens.md),
                   TextField(
                     controller: priceCtrl,
                     keyboardType: TextInputType.number,
-                    decoration: InputDecoration(labelText: AppStrings.t(isArabic, 'price')),
+                    decoration: InputDecoration(
+                      labelText: AppStrings.t(isArabic, 'price_per_night'),
+                      helperText: AppStrings.t(isArabic, 'price_prefilled_hint'),
+                    ),
                   ),
                   const SizedBox(height: AppDimens.md),
-                  TextField(controller: descCtrl, maxLines: 3, decoration: InputDecoration(labelText: AppStrings.t(isArabic, 'description'))),
+                  TextField(
+                    controller: contactCtrl,
+                    keyboardType: TextInputType.phone,
+                    decoration: InputDecoration(labelText: AppStrings.t(isArabic, 'contact_number')),
+                  ),
+                  const SizedBox(height: AppDimens.md),
+                  TextField(controller: descCtrl, maxLines: 3, decoration: InputDecoration(labelText: AppStrings.t(isArabic, 'extra_note'))),
                   const SizedBox(height: AppDimens.lg),
                   SizedBox(
                     width: double.infinity,
                     height: AppDimens.buttonHeight,
                     child: ElevatedButton(
-                      onPressed: titleCtrl.text.trim().isEmpty
+                      onPressed: submitting
                           ? null
                           : () async {
+                              final price = double.tryParse(priceCtrl.text.trim());
+                              if (selectedUnitId == null || price == null || price <= 0) {
+                                ScaffoldMessenger.of(context)
+                                    .showSnackBar(SnackBar(content: Text(AppStrings.t(isArabic, 'fill_required_fields'))));
+                                return;
+                              }
+                              setSheetState(() => submitting = true);
                               try {
                                 await _service.createListing(
-                                  title: titleCtrl.text.trim(),
+                                  unitId: selectedUnitId!,
+                                  price: price,
                                   description: descCtrl.text.trim(),
-                                  listingType: listingType,
-                                  price: double.tryParse(priceCtrl.text.trim()),
+                                  contactPhone: contactCtrl.text.trim(),
                                 );
                                 if (ctx.mounted) Navigator.of(ctx).pop();
                                 _reload();
                               } on ApiException catch (e) {
                                 if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+                              } finally {
+                                setSheetState(() => submitting = false);
                               }
                             },
                       child: Text(AppStrings.t(isArabic, 'submit')),
@@ -177,7 +229,6 @@ class _OwnerMarketplaceScreenState extends ConsumerState<OwnerMarketplaceScreen>
                 itemBuilder: (context, index) {
                   final l = listings[index];
                   final isMine = l['is_mine'] == true;
-                  final isRent = l['listing_type'] == 'rent';
                   return Container(
                     decoration: BoxDecoration(
                       color: AppColors.surface,
@@ -201,13 +252,20 @@ class _OwnerMarketplaceScreenState extends ConsumerState<OwnerMarketplaceScreen>
                             children: [
                               Text(l['title'].toString(), style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700), maxLines: 1, overflow: TextOverflow.ellipsis),
                               const SizedBox(height: 2),
-                              Text(
-                                AppStrings.t(isArabic, isRent ? 'for_rent' : 'for_sale'),
-                                style: textTheme.bodySmall?.copyWith(color: isRent ? AppColors.secondary : AppColors.goldDark, fontWeight: FontWeight.w600),
-                              ),
+                              if (l['hotel_name'] != null)
+                                Text(l['hotel_name'].toString(),
+                                    style: textTheme.bodySmall?.copyWith(color: AppColors.textMuted), maxLines: 1, overflow: TextOverflow.ellipsis),
+                              if (l['unit_capacity'] != null)
+                                Text('👤 ${l['unit_capacity']} ${AppStrings.t(isArabic, 'guests')}',
+                                    style: textTheme.bodySmall?.copyWith(color: AppColors.textMuted, fontSize: 11)),
                               if (l['price'] != null)
-                                Text('${(l['price'] as num).toStringAsFixed(0)} ${AppStrings.t(isArabic, 'sar')}',
-                                    style: textTheme.bodySmall?.copyWith(color: AppColors.success, fontWeight: FontWeight.w700)),
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 4),
+                                  child: Text(
+                                    '${(l['price'] as num).toStringAsFixed(0)} ${AppStrings.t(isArabic, 'sar')} / ${AppStrings.t(isArabic, 'night')}',
+                                    style: textTheme.bodySmall?.copyWith(color: AppColors.success, fontWeight: FontWeight.w700),
+                                  ),
+                                ),
                               const SizedBox(height: 4),
                               if (!isMine)
                                 SizedBox(

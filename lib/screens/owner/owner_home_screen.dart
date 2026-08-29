@@ -57,6 +57,11 @@ class _OwnerHomeScreenState extends ConsumerState<OwnerHomeScreen> {
         onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const OwnerMaintenanceScreen())),
       ),
       (
+        icon: Icons.restaurant_outlined,
+        title: AppStrings.t(isArabic, 'meal_requests'),
+        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const OwnerMealRequestsScreen())),
+      ),
+      (
         icon: Icons.folder_outlined,
         title: AppStrings.t(isArabic, 'contracts_docs'),
         onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const OwnerDocumentsScreen())),

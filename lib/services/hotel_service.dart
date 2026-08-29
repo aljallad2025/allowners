@@ -73,6 +73,8 @@ class HotelService {
     required int guests,
     required String paymentMethod, // online | at_hotel
     String? cardNumber,
+    String mealType = 'none', // none | breakfast | lunch | dinner | all
+    bool extraBed = false,
   }) async {
     try {
       final res = await _dio.post('/bookings/create.php', data: {
@@ -81,6 +83,8 @@ class HotelService {
         'check_out': _fmt(checkOut),
         'guests': guests,
         'payment_method': paymentMethod,
+        'meal_type': mealType,
+        'extra_bed': extraBed,
         if (cardNumber != null) 'card_number': cardNumber,
       });
       return (res.data['booking'] as Map).cast<String, dynamic>();

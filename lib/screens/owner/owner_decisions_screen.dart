@@ -21,13 +21,22 @@ class _OwnerDecisionsScreenState extends ConsumerState<OwnerDecisionsScreen> {
 
   Future<void> _openCreateSheet(bool isArabic) async {
     List<Map<String, dynamic>> hotels = [];
+    String? loadError;
     try {
       hotels = await _service.getHotels();
-    } catch (_) {}
+    } on ApiException catch (e) {
+      loadError = e.message;
+    } catch (e) {
+      loadError = e.toString();
+    }
     if (!mounted) return;
 
+    if (loadError != null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(loadError)));
+      return;
+    }
     if (hotels.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppStrings.t(isArabic, 'error_loading'))));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppStrings.t(isArabic, 'no_hotels_linked'))));
       return;
     }
 
@@ -98,7 +107,7 @@ class _OwnerDecisionsScreenState extends ConsumerState<OwnerDecisionsScreen> {
                               final options = optionCtrls.map((c) => c.text.trim()).where((t) => t.isNotEmpty).toList();
                               if (title.isEmpty || options.length < 2 || selectedHotelId == null) {
                                 ScaffoldMessenger.of(context)
-                                    .showSnackBar(SnackBar(content: Text(AppStrings.t(isArabic, 'error_loading'))));
+                                    .showSnackBar(SnackBar(content: Text(AppStrings.t(isArabic, 'fill_required_fields'))));
                                 return;
                               }
                               setSheetState(() => submitting = true);

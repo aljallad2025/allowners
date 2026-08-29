@@ -14,6 +14,7 @@ import 'owner_decisions_screen.dart';
 import 'owner_community_screen.dart';
 import 'owner_marketplace_screen.dart';
 import 'owner_messages_screen.dart';
+import 'owner_staff_screen.dart';
 
 class OwnerProfileScreen extends ConsumerWidget {
   const OwnerProfileScreen({super.key});
@@ -76,6 +77,12 @@ class OwnerProfileScreen extends ConsumerWidget {
                   label: AppStrings.t(isArabic, 'voting_decisions'),
                   onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const OwnerDecisionsScreen())),
                 ),
+                if (user?.role == 'owner')
+                  _MenuItem(
+                    icon: Icons.badge_outlined,
+                    label: AppStrings.t(isArabic, 'staff'),
+                    onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const OwnerStaffScreen())),
+                  ),
               ]),
               const SizedBox(height: AppDimens.md),
 

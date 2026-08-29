@@ -14,6 +14,7 @@ class HotelModel {
   final bool freeCancellation;
   final bool breakfastIncluded;
   final bool isFavorite;
+  final double? extraBedPrice;
 
   HotelModel({
     required this.id,
@@ -31,6 +32,7 @@ class HotelModel {
     this.freeCancellation = true,
     this.breakfastIncluded = false,
     this.isFavorite = false,
+    this.extraBedPrice,
   });
 
   /// يبني الموديل من استجابة الـ API الحقيقية (/api/hotels/list.php و detail.php)
@@ -51,6 +53,7 @@ class HotelModel {
       freeCancellation: json['free_cancellation'] == true || json['free_cancellation'] == 1,
       breakfastIncluded: json['breakfast_included'] == true || json['breakfast_included'] == 1,
       isFavorite: isFavorite,
+      extraBedPrice: json['extra_bed_price'] == null ? null : double.tryParse(json['extra_bed_price'].toString()),
     );
   }
 
@@ -60,6 +63,7 @@ class HotelModel {
       rating: rating, reviewsCount: reviewsCount, pricePerNight: pricePerNight, stars: stars,
       imageUrl: imageUrl, galleryUrls: galleryUrls, freeCancellation: freeCancellation,
       breakfastIncluded: breakfastIncluded, isFavorite: isFavorite ?? this.isFavorite,
+      extraBedPrice: extraBedPrice,
     );
   }
 

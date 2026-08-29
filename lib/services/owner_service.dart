@@ -44,6 +44,14 @@ class OwnerService {
     }
   }
 
+  Future<void> cancelBooking(int bookingId) async {
+    try {
+      await _dio.post('/user/owner-bookings.php', data: {'booking_id': bookingId});
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
   Future<Map<String, dynamic>> getRevenue() async {
     try {
       final res = await _dio.get('/user/owner-revenue.php');
@@ -57,6 +65,23 @@ class OwnerService {
     try {
       final res = await _dio.get('/user/owner-maintenance.php');
       return (res.data['requests'] as List).cast<Map<String, dynamic>>();
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getMealRequests() async {
+    try {
+      final res = await _dio.get('/user/owner-meals.php');
+      return (res.data['requests'] as List).cast<Map<String, dynamic>>();
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  Future<void> updateMealRequestStatus({required int requestId, required String status}) async {
+    try {
+      await _dio.post('/user/owner-meals.php', data: {'request_id': requestId, 'status': status});
     } on DioException catch (e) {
       throw ApiException.fromDioError(e);
     }
@@ -176,19 +201,17 @@ class OwnerService {
   }
 
   Future<void> createListing({
-    required String title,
+    required int unitId,
+    required double price,
     String? description,
-    required String listingType,
-    double? price,
-    int? unitId,
+    String? contactPhone,
   }) async {
     try {
       await _dio.post('/marketplace/create.php', data: {
-        'title': title,
-        if (description != null) 'description': description,
-        'listing_type': listingType,
-        if (price != null) 'price': price,
-        if (unitId != null) 'unit_id': unitId,
+        'unit_id': unitId,
+        'price': price,
+        if (description != null && description.isNotEmpty) 'description': description,
+        if (contactPhone != null && contactPhone.isNotEmpty) 'contact_phone': contactPhone,
       });
     } on DioException catch (e) {
       throw ApiException.fromDioError(e);
@@ -255,6 +278,66 @@ class OwnerService {
   Future<void> markAllNotificationsRead() async {
     try {
       await _dio.post('/user/notifications.php', data: {'mark_all_read': true});
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  // ===== الموظفون (مدراء الوحدات) =====
+
+  Future<List<Map<String, dynamic>>> getStaff() async {
+    try {
+      final res = await _dio.get('/user/owner-staff.php');
+      return (res.data['staff'] as List).cast<Map<String, dynamic>>();
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  Future<void> createUnitManager({
+    required String fullName,
+    required String email,
+    String? phone,
+    required String password,
+  }) async {
+    try {
+      await _dio.post('/user/owner-staff.php', data: {
+        'action': 'create_unit_manager',
+        'full_name': fullName,
+        'email': email,
+        if (phone != null && phone.isNotEmpty) 'phone': phone,
+        'password': password,
+      });
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  Future<void> toggleStaffStatus(int staffId) async {
+    try {
+      await _dio.post('/user/owner-staff.php', data: {'action': 'toggle_status', 'id': staffId});
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  Future<void> resetStaffPassword(int staffId, String newPassword) async {
+    try {
+      await _dio.post('/user/owner-staff.php', data: {
+        'action': 'reset_password',
+        'id': staffId,
+        'new_password': newPassword,
+      });
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  // ===== تبديل حالة الوحدة (متاحة/موقوفة) =====
+
+  Future<void> toggleUnitStatus(int unitId) async {
+    try {
+      await _dio.post('/user/owner-units.php', data: {'unit_id': unitId});
     } on DioException catch (e) {
       throw ApiException.fromDioError(e);
     }
