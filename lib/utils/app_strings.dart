@@ -247,7 +247,6 @@ class AppStrings {
       'ar': 'صلاحياته تلقائياً: مشاهدة الوحدات وتبديل حالتها، واستقبال بلاغات الصيانة والتنظيف. بدون حذف، وبدون أي وصول للمحفظة أو الإيرادات أو التقارير.',
       'en': 'Automatic permissions: view units and toggle their status, and receive maintenance/housekeeping reports. No delete, and no access to wallet, revenue, or reports.'
     },
-    'full_name': {'ar': 'الاسم الكامل', 'en': 'Full name'},
     'password_hint_min6': {'ar': '6 أحرف على الأقل', 'en': 'At least 6 characters'},
     'no_staff_yet': {'ar': 'ما في موظفين مضافين بعد', 'en': 'No staff added yet'},
     'suspended': {'ar': 'موقوف', 'en': 'Suspended'},
