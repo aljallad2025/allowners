@@ -14,6 +14,7 @@ import 'owner_decisions_screen.dart';
 import 'owner_community_screen.dart';
 import 'owner_marketplace_screen.dart';
 import 'owner_messages_screen.dart';
+import 'owner_meal_requests_screen.dart';
 
 class OwnerHomeScreen extends ConsumerStatefulWidget {
   const OwnerHomeScreen({super.key});
