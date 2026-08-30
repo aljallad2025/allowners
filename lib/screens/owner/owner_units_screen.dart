@@ -5,6 +5,7 @@ import '../../theme/app_dimens.dart';
 import '../../utils/app_strings.dart';
 import '../../utils/locale_provider.dart';
 import '../../services/owner_service.dart';
+import 'owner_add_unit_screen.dart';
 
 class OwnerUnitsScreen extends ConsumerStatefulWidget {
   const OwnerUnitsScreen({super.key});
@@ -15,15 +16,27 @@ class OwnerUnitsScreen extends ConsumerStatefulWidget {
 
 class _OwnerUnitsScreenState extends ConsumerState<OwnerUnitsScreen> {
   final _service = OwnerService();
-  late Future<List<Map<String, dynamic>>> _future;
+  late Future<Map<String, dynamic>> _future;
 
   @override
   void initState() {
     super.initState();
-    _future = _service.getUnits();
+    _future = _service.getUnitsFull();
   }
 
-  void _reload() => setState(() => _future = _service.getUnits());
+  void _reload() => setState(() => _future = _service.getUnitsFull());
+
+  Future<void> _openAddUnit(bool isArabic, List<Map<String, dynamic>> hotels) async {
+    final added = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => OwnerAddUnitScreen(hotels: hotels)),
+    );
+    if (added == true) {
+      _reload();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppStrings.t(isArabic, 'unit_added_success'))));
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +53,7 @@ class _OwnerUnitsScreenState extends ConsumerState<OwnerUnitsScreen> {
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async => _reload(),
-          child: FutureBuilder<List<Map<String, dynamic>>>(
+          child: FutureBuilder<Map<String, dynamic>>(
             future: _future,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
@@ -52,14 +65,34 @@ class _OwnerUnitsScreenState extends ConsumerState<OwnerUnitsScreen> {
                   children: [_ErrorBox(isArabic: isArabic, onRetry: _reload)],
                 );
               }
-              final units = snapshot.data ?? [];
+              final data = snapshot.data ?? {};
+              final units = (data['units'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+              final hotels = (data['hotels'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+              final canCreate = data['can_create'] == true;
+
               if (units.isEmpty) {
                 return ListView(
                   physics: const AlwaysScrollableScrollPhysics(),
                   children: [
                     Padding(
                       padding: const EdgeInsets.all(AppDimens.xl),
-                      child: Center(child: Text(AppStrings.t(isArabic, 'no_units'))),
+                      child: Column(
+                        children: [
+                          Text(AppStrings.t(isArabic, 'no_units'), textAlign: TextAlign.center),
+                          if (canCreate) ...[
+                            const SizedBox(height: AppDimens.md),
+                            if (hotels.isEmpty)
+                              Text(AppStrings.t(isArabic, 'no_hotel_linked'),
+                                  textAlign: TextAlign.center, style: const TextStyle(color: AppColors.warning))
+                            else
+                              ElevatedButton.icon(
+                                onPressed: () => _openAddUnit(isArabic, hotels),
+                                icon: const Icon(Icons.add),
+                                label: Text(AppStrings.t(isArabic, 'add_unit')),
+                              ),
+                          ],
+                        ],
+                      ),
                     ),
                   ],
                 );
@@ -140,6 +173,24 @@ class _OwnerUnitsScreenState extends ConsumerState<OwnerUnitsScreen> {
             },
           ),
         ),
+      ),
+      floatingActionButton: FutureBuilder<Map<String, dynamic>>(
+        future: _future,
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) return const SizedBox.shrink();
+          final data = snapshot.data!;
+          final canCreate = data['can_create'] == true;
+          final hotels = (data['hotels'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+          final units = (data['units'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+          // الزر العائم يظهر بس لو فيه صلاحية إضافة ولو القائمة مش فاضية أصلاً (لو فاضية، الزر موجود جوا الصفحة نفسها)
+          if (!canCreate || units.isEmpty) return const SizedBox.shrink();
+          return FloatingActionButton.extended(
+            backgroundColor: AppColors.gold,
+            onPressed: () => _openAddUnit(isArabic, hotels),
+            icon: const Icon(Icons.add, color: AppColors.textOnGold),
+            label: Text(AppStrings.t(isArabic, 'add_unit'), style: const TextStyle(color: AppColors.textOnGold)),
+          );
+        },
       ),
     );
   }

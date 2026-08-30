@@ -333,6 +333,55 @@ class OwnerService {
     }
   }
 
+  // ===== الوحدات =====
+
+  Future<Map<String, dynamic>> getUnitsFull() async {
+    try {
+      final res = await _dio.get('/user/owner-units.php');
+      return {
+        'units': (res.data['units'] as List).cast<Map<String, dynamic>>(),
+        'hotels': (res.data['hotels'] as List).cast<Map<String, dynamic>>(),
+        'can_create': res.data['can_create'] == true,
+      };
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  Future<void> createUnit({
+    required int hotelId,
+    required String nameAr,
+    required String nameEn,
+    String? descriptionAr,
+    String? descriptionEn,
+    String? unitNumber,
+    required int capacity,
+    required double pricePerNight,
+    double? pricePerWeek,
+    double? pricePerMonth,
+    String? coverImagePath,
+  }) async {
+    try {
+      final formData = FormData.fromMap({
+        'action': 'create',
+        'hotel_id': hotelId.toString(),
+        'name_ar': nameAr,
+        'name_en': nameEn,
+        'description_ar': descriptionAr ?? '',
+        'description_en': descriptionEn ?? '',
+        'unit_number': unitNumber ?? '',
+        'capacity': capacity.toString(),
+        'price_per_night': pricePerNight.toString(),
+        if (pricePerWeek != null) 'price_per_week': pricePerWeek.toString(),
+        if (pricePerMonth != null) 'price_per_month': pricePerMonth.toString(),
+        if (coverImagePath != null) 'cover_image': await MultipartFile.fromFile(coverImagePath),
+      });
+      await _dio.post('/user/owner-units.php', data: formData);
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
   // ===== تبديل حالة الوحدة (متاحة/موقوفة) =====
 
   Future<void> toggleUnitStatus(int unitId) async {

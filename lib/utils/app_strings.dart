@@ -247,7 +247,6 @@ class AppStrings {
       'ar': 'صلاحياته تلقائياً: مشاهدة الوحدات وتبديل حالتها، واستقبال بلاغات الصيانة والتنظيف. بدون حذف، وبدون أي وصول للمحفظة أو الإيرادات أو التقارير.',
       'en': 'Automatic permissions: view units and toggle their status, and receive maintenance/housekeeping reports. No delete, and no access to wallet, revenue, or reports.'
     },
-    'full_name': {'ar': 'الاسم الكامل', 'en': 'Full name'},
     'password_hint_min6': {'ar': '6 أحرف على الأقل', 'en': 'At least 6 characters'},
     'no_staff_yet': {'ar': 'ما في موظفين مضافين بعد', 'en': 'No staff added yet'},
     'suspended': {'ar': 'موقوف', 'en': 'Suspended'},
@@ -323,6 +322,27 @@ class AppStrings {
     'nightly_rental_hint': {'ar': 'اختر إحدى وحداتك وحدد سعر الليلة، بيقدر باقي الملاك يشوفوها ويحجزوها', 'en': "Pick one of your units and set a nightly rate for other owners to book"},
     'select_unit': {'ar': 'اختر الوحدة', 'en': 'Select Unit'},
     'price_per_night': {'ar': 'السعر بالليلة', 'en': 'Price per night'},
+    'no_hotel_linked': {
+      'ar': 'لا يوجد فندق مربوط بحسابك بعد. تواصل مع الإدارة لربط فندقك بحسابك.',
+      'en': 'No hotel is linked to your account yet. Contact the admin to link your hotel.'
+    },
+    'add_unit': {'ar': 'إضافة وحدة', 'en': 'Add Unit'},
+    'unit_name_ar': {'ar': 'اسم الوحدة (عربي)', 'en': 'Unit Name (Arabic)'},
+    'unit_name_en': {'ar': 'اسم الوحدة (إنجليزي)', 'en': 'Unit Name (English)'},
+    'unit_number': {'ar': 'رقم الوحدة', 'en': 'Unit Number'},
+    'description_ar': {'ar': 'الوصف (عربي)', 'en': 'Description (Arabic)'},
+    'description_en': {'ar': 'الوصف (إنجليزي)', 'en': 'Description (English)'},
+    'capacity': {'ar': 'السعة', 'en': 'Capacity'},
+    'price_per_week_optional': {'ar': 'السعر بالأسبوع (اختياري)', 'en': 'Price / week (optional)'},
+    'price_per_month_optional': {'ar': 'السعر بالشهر (اختياري)', 'en': 'Price / month (optional)'},
+    'cover_image': {'ar': 'الصورة الرئيسية', 'en': 'Cover image'},
+    'hotel': {'ar': 'الفندق', 'en': 'Hotel'},
+    'required_field': {'ar': 'هاد الحقل مطلوب', 'en': 'This field is required'},
+    'add_unit_more_options_web': {
+      'ar': 'تقدر تضيف صور إضافية، فترات إتاحة، وخيارات (سرير إضافي/وجبات) لهالوحدة لاحقاً من موقع الويب.',
+      'en': 'You can add more photos, availability periods, and add-ons (extra bed/meals) for this unit later from the website.'
+    },
+    'unit_added_success': {'ar': 'تمت إضافة الوحدة بنجاح', 'en': 'Unit added successfully'},
     'extra_note': {'ar': 'ملاحظة إضافية (اختياري)', 'en': 'Extra note (optional)'},
     'price_prefilled_hint': {'ar': 'مُعبّى تلقائياً من سعر الوحدة، تقدر تعدله', 'en': 'Auto-filled from the unit price, you can edit it'},
     'fill_required_fields': {'ar': 'الرجاء تعبئة العنوان وخيارين على الأقل', 'en': 'Please fill the title and at least 2 options'},
