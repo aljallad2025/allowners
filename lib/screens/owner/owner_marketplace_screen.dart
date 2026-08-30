@@ -175,6 +175,16 @@ class _OwnerMarketplaceScreenState extends ConsumerState<OwnerMarketplaceScreen>
         backgroundColor: AppColors.surface,
         elevation: 0,
         title: Text(AppStrings.t(isArabic, 'units_marketplace')),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(28),
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Text(
+              AppStrings.t(isArabic, 'units_marketplace_subtitle'),
+              style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+            ),
+          ),
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: AppColors.gold,

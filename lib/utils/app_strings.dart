@@ -233,6 +233,10 @@ class AppStrings {
     'voting_decisions': {'ar': 'التصويت والقرارات', 'en': 'Voting & Decisions'},
     'owners_community': {'ar': 'مجتمع الملاك', 'en': 'Owners Community'},
     'units_marketplace': {'ar': 'سوق الوحدات', 'en': 'Units Marketplace'},
+    'units_marketplace_subtitle': {
+      'ar': 'لعرض وحدة موجودة أصلاً للبيع أو الإيجار بين الملاك — مش لإضافة وحدة جديدة',
+      'en': 'List an existing unit for sale/rent among owners — not for adding a new unit'
+    },
     'messages': {'ar': 'الرسائل', 'en': 'Messages'},
     'staff': {'ar': 'الموظفون', 'en': 'Staff'},
     'staff_desc': {
@@ -343,6 +347,15 @@ class AppStrings {
       'en': 'You can add more photos, availability periods, and add-ons (extra bed/meals) for this unit later from the website.'
     },
     'unit_added_success': {'ar': 'تمت إضافة الوحدة بنجاح', 'en': 'Unit added successfully'},
+    'unit_addons_title': {'ar': 'الإضافات (سرير إضافي / خطط وجبات)', 'en': 'Add-ons (extra bed / meal plans)'},
+    'add_unit_addon': {'ar': 'إضافة خيار', 'en': 'Add option'},
+    'addon_type': {'ar': 'النوع', 'en': 'Type'},
+    'billed': {'ar': 'يُحسب', 'en': 'Billed'},
+    'no_addons_yet': {'ar': 'ما في إضافات لهالوحدة بعد', 'en': 'No add-ons for this unit yet'},
+    'add_unit_gallery_availability_web': {
+      'ar': 'تقدر تضيف صور إضافية وفترات إتاحة لهالوحدة لاحقاً من موقع الويب.',
+      'en': 'You can add more photos and availability periods for this unit later from the website.'
+    },
     'extra_note': {'ar': 'ملاحظة إضافية (اختياري)', 'en': 'Extra note (optional)'},
     'price_prefilled_hint': {'ar': 'مُعبّى تلقائياً من سعر الوحدة، تقدر تعدله', 'en': 'Auto-filled from the unit price, you can edit it'},
     'fill_required_fields': {'ar': 'الرجاء تعبئة العنوان وخيارين على الأقل', 'en': 'Please fill the title and at least 2 options'},

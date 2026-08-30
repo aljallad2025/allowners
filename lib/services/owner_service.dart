@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'api_client.dart';
 
@@ -360,6 +361,7 @@ class OwnerService {
     double? pricePerWeek,
     double? pricePerMonth,
     String? coverImagePath,
+    List<Map<String, dynamic>>? addons,
   }) async {
     try {
       final formData = FormData.fromMap({
@@ -375,6 +377,7 @@ class OwnerService {
         if (pricePerWeek != null) 'price_per_week': pricePerWeek.toString(),
         if (pricePerMonth != null) 'price_per_month': pricePerMonth.toString(),
         if (coverImagePath != null) 'cover_image': await MultipartFile.fromFile(coverImagePath),
+        if (addons != null && addons.isNotEmpty) 'addons': jsonEncode(addons),
       });
       await _dio.post('/user/owner-units.php', data: formData);
     } on DioException catch (e) {

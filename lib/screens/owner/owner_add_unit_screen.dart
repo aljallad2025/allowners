@@ -36,6 +36,10 @@ class _OwnerAddUnitScreenState extends ConsumerState<OwnerAddUnitScreen> {
   File? _coverImage;
   bool _saving = false;
   String? _errorText;
+  final List<Map<String, dynamic>> _addons = [];
+
+  static const _addonCategories = ['extra_bed', 'meal_plan', 'other'];
+  static const _priceUnits = ['per_night', 'per_stay', 'per_person_night'];
 
   @override
   void initState() {
@@ -89,6 +93,7 @@ class _OwnerAddUnitScreenState extends ConsumerState<OwnerAddUnitScreen> {
         pricePerWeek: _priceWeekCtrl.text.trim().isEmpty ? null : double.tryParse(_priceWeekCtrl.text.trim()),
         pricePerMonth: _priceMonthCtrl.text.trim().isEmpty ? null : double.tryParse(_priceMonthCtrl.text.trim()),
         coverImagePath: _coverImage?.path,
+        addons: _addons,
       );
       if (mounted) Navigator.of(context).pop(true);
     } on ApiException catch (e) {
@@ -96,6 +101,113 @@ class _OwnerAddUnitScreenState extends ConsumerState<OwnerAddUnitScreen> {
     } finally {
       if (mounted) setState(() => _saving = false);
     }
+  }
+
+  String _categoryLabel(bool isArabic, String cat) {
+    switch (cat) {
+      case 'extra_bed':
+        return isArabic ? '🛏️ سرير إضافي' : '🛏️ Extra Bed';
+      case 'meal_plan':
+        return isArabic ? '🍽️ خطة وجبات' : '🍽️ Meal Plan';
+      default:
+        return isArabic ? '✨ إضافة أخرى' : '✨ Other';
+    }
+  }
+
+  String _priceUnitLabel(bool isArabic, String pu) {
+    switch (pu) {
+      case 'per_stay':
+        return isArabic ? '/ للإقامة كاملة' : '/ whole stay';
+      case 'per_person_night':
+        return isArabic ? '/ للشخص لليلة' : '/ person / night';
+      default:
+        return isArabic ? '/ لليلة' : '/ night';
+    }
+  }
+
+  Future<void> _openAddAddonSheet(bool isArabic) async {
+    String category = 'extra_bed';
+    String priceUnit = 'per_night';
+    final nameArCtrl = TextEditingController();
+    final nameEnCtrl = TextEditingController();
+    final priceCtrl = TextEditingController();
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return Padding(
+          padding: EdgeInsets.only(
+            left: AppDimens.pagePadding,
+            right: AppDimens.pagePadding,
+            top: AppDimens.pagePadding,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + AppDimens.pagePadding,
+          ),
+          child: StatefulBuilder(
+            builder: (ctx, setSheetState) => SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(AppStrings.t(isArabic, 'add_unit_addon'), style: Theme.of(ctx).textTheme.titleMedium),
+                  const SizedBox(height: AppDimens.md),
+                  DropdownButtonFormField<String>(
+                    initialValue: category,
+                    decoration: _dec(AppStrings.t(isArabic, 'addon_type')),
+                    items: _addonCategories
+                        .map((c) => DropdownMenuItem(value: c, child: Text(_categoryLabel(isArabic, c))))
+                        .toList(),
+                    onChanged: (v) => setSheetState(() => category = v ?? category),
+                  ),
+                  const SizedBox(height: AppDimens.md),
+                  TextField(controller: nameArCtrl, decoration: _dec(AppStrings.t(isArabic, 'unit_name_ar'))),
+                  const SizedBox(height: AppDimens.md),
+                  TextField(controller: nameEnCtrl, decoration: _dec(AppStrings.t(isArabic, 'unit_name_en'))),
+                  const SizedBox(height: AppDimens.md),
+                  TextField(
+                    controller: priceCtrl,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: _dec(AppStrings.t(isArabic, 'price')),
+                  ),
+                  const SizedBox(height: AppDimens.md),
+                  DropdownButtonFormField<String>(
+                    initialValue: priceUnit,
+                    decoration: _dec(AppStrings.t(isArabic, 'billed')),
+                    items: _priceUnits
+                        .map((p) => DropdownMenuItem(value: p, child: Text(_priceUnitLabel(isArabic, p))))
+                        .toList(),
+                    onChanged: (v) => setSheetState(() => priceUnit = v ?? priceUnit),
+                  ),
+                  const SizedBox(height: AppDimens.lg),
+                  SizedBox(
+                    width: double.infinity,
+                    height: AppDimens.buttonHeight,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        if (nameArCtrl.text.trim().isEmpty || nameEnCtrl.text.trim().isEmpty || priceCtrl.text.trim().isEmpty) {
+                          return;
+                        }
+                        setState(() {
+                          _addons.add({
+                            'category': category,
+                            'name_ar': nameArCtrl.text.trim(),
+                            'name_en': nameEnCtrl.text.trim(),
+                            'price': double.tryParse(priceCtrl.text.trim()) ?? 0,
+                            'price_unit': priceUnit,
+                          });
+                        });
+                        Navigator.of(ctx).pop();
+                      },
+                      child: Text(AppStrings.t(isArabic, 'add_unit_addon')),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   InputDecoration _dec(String label) => InputDecoration(labelText: label);
@@ -236,6 +348,48 @@ class _OwnerAddUnitScreenState extends ConsumerState<OwnerAddUnitScreen> {
                 ],
               ),
 
+              const SizedBox(height: AppDimens.lg),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(AppStrings.t(isArabic, 'unit_addons_title'), style: Theme.of(context).textTheme.titleSmall),
+                  TextButton.icon(
+                    onPressed: () => _openAddAddonSheet(isArabic),
+                    icon: const Icon(Icons.add, size: 18),
+                    label: Text(AppStrings.t(isArabic, 'add_unit_addon')),
+                  ),
+                ],
+              ),
+              if (_addons.isEmpty)
+                Text(AppStrings.t(isArabic, 'no_addons_yet'), style: const TextStyle(color: AppColors.textMuted, fontSize: 12))
+              else
+                ..._addons.asMap().entries.map((entry) {
+                  final i = entry.key;
+                  final addon = entry.value;
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: AppDimens.sm),
+                    padding: const EdgeInsets.all(AppDimens.sm),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceMuted,
+                      borderRadius: BorderRadius.circular(AppDimens.radiusSm),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            '${_categoryLabel(isArabic, addon['category'])} — ${isArabic ? addon['name_ar'] : addon['name_en']} — ${addon['price']} ${_priceUnitLabel(isArabic, addon['price_unit'])}',
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close, size: 18, color: AppColors.danger),
+                          onPressed: () => setState(() => _addons.removeAt(i)),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+
               if (_errorText != null) ...[
                 const SizedBox(height: AppDimens.md),
                 Text(_errorText!, style: const TextStyle(color: AppColors.danger)),
@@ -254,7 +408,7 @@ class _OwnerAddUnitScreenState extends ConsumerState<OwnerAddUnitScreen> {
               ),
               const SizedBox(height: AppDimens.md),
               Text(
-                AppStrings.t(isArabic, 'add_unit_more_options_web'),
+                AppStrings.t(isArabic, 'add_unit_gallery_availability_web'),
                 textAlign: TextAlign.center,
                 style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
               ),
