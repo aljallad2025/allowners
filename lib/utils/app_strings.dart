@@ -352,6 +352,12 @@ class AppStrings {
     'addon_type': {'ar': 'النوع', 'en': 'Type'},
     'billed': {'ar': 'يُحسب', 'en': 'Billed'},
     'no_addons_yet': {'ar': 'ما في إضافات لهالوحدة بعد', 'en': 'No add-ons for this unit yet'},
+    'gallery_images': {'ar': 'معرض الصور', 'en': 'Photo Gallery'},
+    'add_photos': {'ar': 'إضافة صور', 'en': 'Add photos'},
+    'add_unit_availability_web': {
+      'ar': 'تقدر تحدد فترات الإتاحة لهالوحدة لاحقاً من موقع الويب.',
+      'en': 'You can set availability periods for this unit later from the website.'
+    },
     'add_unit_gallery_availability_web': {
       'ar': 'تقدر تضيف صور إضافية وفترات إتاحة لهالوحدة لاحقاً من موقع الويب.',
       'en': 'You can add more photos and availability periods for this unit later from the website.'

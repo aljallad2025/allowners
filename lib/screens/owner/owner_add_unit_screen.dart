@@ -34,6 +34,7 @@ class _OwnerAddUnitScreenState extends ConsumerState<OwnerAddUnitScreen> {
 
   int? _selectedHotelId;
   File? _coverImage;
+  final List<File> _galleryImages = [];
   bool _saving = false;
   String? _errorText;
   final List<Map<String, dynamic>> _addons = [];
@@ -68,6 +69,13 @@ class _OwnerAddUnitScreenState extends ConsumerState<OwnerAddUnitScreen> {
     if (picked != null) setState(() => _coverImage = File(picked.path));
   }
 
+  Future<void> _pickGalleryImages() async {
+    final picked = await ImagePicker().pickMultiImage(imageQuality: 85);
+    if (picked.isNotEmpty) {
+      setState(() => _galleryImages.addAll(picked.map((x) => File(x.path))));
+    }
+  }
+
   Future<void> _submit(bool isArabic) async {
     if (_selectedHotelId == null) {
       setState(() => _errorText = AppStrings.t(isArabic, 'no_hotel_linked'));
@@ -93,6 +101,7 @@ class _OwnerAddUnitScreenState extends ConsumerState<OwnerAddUnitScreen> {
         pricePerWeek: _priceWeekCtrl.text.trim().isEmpty ? null : double.tryParse(_priceWeekCtrl.text.trim()),
         pricePerMonth: _priceMonthCtrl.text.trim().isEmpty ? null : double.tryParse(_priceMonthCtrl.text.trim()),
         coverImagePath: _coverImage?.path,
+        galleryPaths: _galleryImages.map((f) => f.path).toList(),
         addons: _addons,
       );
       if (mounted) Navigator.of(context).pop(true);
@@ -277,6 +286,48 @@ class _OwnerAddUnitScreenState extends ConsumerState<OwnerAddUnitScreen> {
               ),
               const SizedBox(height: AppDimens.md),
 
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(AppStrings.t(isArabic, 'gallery_images'), style: Theme.of(context).textTheme.titleSmall),
+                  TextButton.icon(
+                    onPressed: _pickGalleryImages,
+                    icon: const Icon(Icons.add_photo_alternate_outlined, size: 18),
+                    label: Text(AppStrings.t(isArabic, 'add_photos')),
+                  ),
+                ],
+              ),
+              if (_galleryImages.isNotEmpty)
+                SizedBox(
+                  height: 80,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _galleryImages.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                    itemBuilder: (context, i) => Stack(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(AppDimens.radiusSm),
+                          child: Image.file(_galleryImages[i], width: 80, height: 80, fit: BoxFit.cover),
+                        ),
+                        Positioned(
+                          top: 2,
+                          right: 2,
+                          child: GestureDetector(
+                            onTap: () => setState(() => _galleryImages.removeAt(i)),
+                            child: Container(
+                              padding: const EdgeInsets.all(2),
+                              decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                              child: const Icon(Icons.close, size: 14, color: Colors.white),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              const SizedBox(height: AppDimens.md),
+
               TextFormField(
                 controller: _nameArCtrl,
                 decoration: _dec(AppStrings.t(isArabic, 'unit_name_ar')),
@@ -408,7 +459,7 @@ class _OwnerAddUnitScreenState extends ConsumerState<OwnerAddUnitScreen> {
               ),
               const SizedBox(height: AppDimens.md),
               Text(
-                AppStrings.t(isArabic, 'add_unit_gallery_availability_web'),
+                AppStrings.t(isArabic, 'add_unit_availability_web'),
                 textAlign: TextAlign.center,
                 style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
               ),
