@@ -154,6 +154,10 @@ class _OwnerBookingsScreenState extends ConsumerState<OwnerBookingsScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text('${b['hotel_name'] ?? ''} — $unitName', style: textTheme.bodySmall?.copyWith(color: AppColors.textMuted)),
+                        if ((b['guest_phone'] ?? '').toString().isNotEmpty)
+                          Text('📞 ${b['guest_phone']}', style: textTheme.bodySmall?.copyWith(color: AppColors.textMuted)),
+                        if ((b['guest_id_number'] ?? '').toString().isNotEmpty)
+                          Text('🪪 ${b['guest_id_number']}', style: textTheme.bodySmall?.copyWith(color: AppColors.textMuted)),
                         const Divider(height: AppDimens.lg),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,

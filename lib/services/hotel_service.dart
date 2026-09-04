@@ -66,8 +66,36 @@ class HotelService {
     }
   }
 
+  Future<List<Map<String, dynamic>>> getUnits(String hotelId) async {
+    try {
+      final res = await _dio.get('/units/list.php', queryParameters: {'hotel_id': int.parse(hotelId)});
+      return (res.data['units'] as List).cast<Map<String, dynamic>>();
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> getUnitDetail(int unitId) async {
+    try {
+      final res = await _dio.get('/units/detail.php', queryParameters: {'id': unitId});
+      return (res.data['unit'] as Map).cast<String, dynamic>();
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getUnitAddons(int unitId) async {
+    try {
+      final res = await _dio.get('/units/addons.php', queryParameters: {'unit_id': unitId});
+      return (res.data['addons'] as List).cast<Map<String, dynamic>>();
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
   Future<Map<String, dynamic>> createBooking({
     required String hotelId,
+    int? unitId,
     required DateTime checkIn,
     required DateTime checkOut,
     required int guests,
@@ -75,17 +103,22 @@ class HotelService {
     String? cardNumber,
     String mealType = 'none', // none | breakfast | lunch | dinner | all
     bool extraBed = false,
+    List<int>? addonIds,
+    String? guestIdNumber,
   }) async {
     try {
       final res = await _dio.post('/bookings/create.php', data: {
         'hotel_id': int.parse(hotelId),
+        if (unitId != null) 'unit_id': unitId,
         'check_in': _fmt(checkIn),
         'check_out': _fmt(checkOut),
         'guests': guests,
         'payment_method': paymentMethod,
         'meal_type': mealType,
         'extra_bed': extraBed,
+        if (addonIds != null && addonIds.isNotEmpty) 'addon_ids': addonIds,
         if (cardNumber != null) 'card_number': cardNumber,
+        'guest_id_number': guestIdNumber ?? '',
       });
       return (res.data['booking'] as Map).cast<String, dynamic>();
     } on DioException catch (e) {

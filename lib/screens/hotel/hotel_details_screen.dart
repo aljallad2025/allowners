@@ -10,6 +10,7 @@ import '../../utils/session_provider.dart';
 import '../../models/hotel_model.dart';
 import '../../services/hotel_service.dart';
 import '../booking/booking_screen.dart';
+import '../unit/unit_details_screen.dart';
 
 class HotelDetailsScreen extends ConsumerStatefulWidget {
   final HotelModel hotel;
@@ -25,6 +26,7 @@ class _HotelDetailsScreenState extends ConsumerState<HotelDetailsScreen> {
   bool _showFullDescription = false;
   int _galleryIndex = 0;
   final PageController _galleryController = PageController();
+  late Future<List<Map<String, dynamic>>> _unitsFuture;
 
   static const _amenityIcons = [
     Icons.wifi_rounded,
@@ -39,6 +41,7 @@ class _HotelDetailsScreenState extends ConsumerState<HotelDetailsScreen> {
   void initState() {
     super.initState();
     _isFavorite = widget.hotel.isFavorite;
+    _unitsFuture = _hotelService.getUnits(widget.hotel.id);
   }
 
   Future<void> _toggleFavorite() async {
@@ -279,6 +282,101 @@ class _HotelDetailsScreenState extends ConsumerState<HotelDetailsScreen> {
                         ),
                       ),
                     ),
+                  ),
+                  const SizedBox(height: AppDimens.lg),
+                  const Divider(),
+                  const SizedBox(height: AppDimens.lg),
+
+                  Text(AppStrings.t(isArabic, 'available_units'), style: textTheme.titleMedium),
+                  const SizedBox(height: AppDimens.md),
+                  FutureBuilder<List<Map<String, dynamic>>>(
+                    future: _unitsFuture,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Padding(
+                          padding: EdgeInsets.symmetric(vertical: AppDimens.md),
+                          child: Center(child: CircularProgressIndicator()),
+                        );
+                      }
+                      final units = snapshot.data ?? [];
+                      if (units.isEmpty) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: AppDimens.sm),
+                          child: Text(AppStrings.t(isArabic, 'no_units'),
+                              style: textTheme.bodySmall?.copyWith(color: AppColors.textMuted)),
+                        );
+                      }
+                      return Column(
+                        children: units.map((u) {
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: AppDimens.sm),
+                            padding: const EdgeInsets.all(AppDimens.sm),
+                            decoration: BoxDecoration(
+                              color: AppColors.surface,
+                              borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+                              border: Border.all(color: AppColors.cardBorder),
+                            ),
+                            child: Row(
+                              children: [
+                                InkWell(
+                                  onTap: () => Navigator.of(context).push(
+                                    MaterialPageRoute(builder: (_) => UnitDetailsScreen(unitId: u['id'] as int)),
+                                  ),
+                                  borderRadius: BorderRadius.circular(AppDimens.radiusMd),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(AppDimens.radiusMd),
+                                    child: CachedNetworkImage(
+                                      imageUrl: u['cover_image']?.toString() ?? '',
+                                      width: 56,
+                                      height: 56,
+                                      fit: BoxFit.cover,
+                                      errorWidget: (context, url, error) =>
+                                          Container(width: 56, height: 56, color: AppColors.surfaceMuted, child: const Icon(Icons.hotel_outlined)),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: AppDimens.sm),
+                                Expanded(
+                                  child: InkWell(
+                                    onTap: () => Navigator.of(context).push(
+                                      MaterialPageRoute(builder: (_) => UnitDetailsScreen(unitId: u['id'] as int)),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(isArabic ? (u['name_ar']?.toString() ?? '') : (u['name_en']?.toString() ?? ''),
+                                            style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700)),
+                                        Text(
+                                          '${(u['price_per_night'] as num).toInt()} ${AppStrings.t(isArabic, "sar")} / ${AppStrings.t(isArabic, "night")}',
+                                          style: textTheme.bodySmall?.copyWith(color: AppColors.goldDark, fontWeight: FontWeight.w600),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                ElevatedButton(
+                                  onPressed: () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (_) => BookingScreen(
+                                          hotel: hotel,
+                                          unitId: u['id'] as int,
+                                          unitName: isArabic ? u['name_ar']?.toString() : u['name_en']?.toString(),
+                                          unitPricePerNight: (u['price_per_night'] as num).toDouble(),
+                                          unitImageUrl: u['cover_image']?.toString(),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 14)),
+                                  child: Text(AppStrings.t(isArabic, 'book_now'), style: const TextStyle(fontSize: 13)),
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      );
+                    },
                   ),
                   const SizedBox(height: AppDimens.lg),
                   const Divider(),

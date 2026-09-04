@@ -28,6 +28,9 @@ class _OwnerAddUnitScreenState extends ConsumerState<OwnerAddUnitScreen> {
   final _descArCtrl = TextEditingController();
   final _descEnCtrl = TextEditingController();
   final _capacityCtrl = TextEditingController(text: '2');
+  final _bedCountCtrl = TextEditingController(text: '1');
+  final _unitTypeArCtrl = TextEditingController();
+  final _unitTypeEnCtrl = TextEditingController();
   final _priceNightCtrl = TextEditingController();
   final _priceWeekCtrl = TextEditingController();
   final _priceMonthCtrl = TextEditingController();
@@ -58,6 +61,9 @@ class _OwnerAddUnitScreenState extends ConsumerState<OwnerAddUnitScreen> {
     _descArCtrl.dispose();
     _descEnCtrl.dispose();
     _capacityCtrl.dispose();
+    _bedCountCtrl.dispose();
+    _unitTypeArCtrl.dispose();
+    _unitTypeEnCtrl.dispose();
     _priceNightCtrl.dispose();
     _priceWeekCtrl.dispose();
     _priceMonthCtrl.dispose();
@@ -93,6 +99,9 @@ class _OwnerAddUnitScreenState extends ConsumerState<OwnerAddUnitScreen> {
         hotelId: _selectedHotelId!,
         nameAr: _nameArCtrl.text.trim(),
         nameEn: _nameEnCtrl.text.trim(),
+        unitTypeAr: _unitTypeArCtrl.text.trim(),
+        unitTypeEn: _unitTypeEnCtrl.text.trim(),
+        bedCount: int.tryParse(_bedCountCtrl.text.trim()) ?? 1,
         descriptionAr: _descArCtrl.text.trim(),
         descriptionEn: _descEnCtrl.text.trim(),
         unitNumber: _unitNumberCtrl.text.trim(),
@@ -141,6 +150,15 @@ class _OwnerAddUnitScreenState extends ConsumerState<OwnerAddUnitScreen> {
     final nameEnCtrl = TextEditingController();
     final priceCtrl = TextEditingController();
 
+    const mealOptions = [
+      {'value': '', 'ar': '— اختر الوجبة —', 'en': '— Select meal —'},
+      {'value': 'فطور|Breakfast', 'ar': '🌅 فطور', 'en': '🌅 Breakfast'},
+      {'value': 'غداء|Lunch', 'ar': '☀️ غداء', 'en': '☀️ Lunch'},
+      {'value': 'عشاء|Dinner', 'ar': '🌙 عشاء', 'en': '🌙 Dinner'},
+      {'value': 'بدون وجبات|No meals', 'ar': '🚫 بدون وجبات', 'en': '🚫 No meals'},
+    ];
+    String selectedMealOption = '';
+
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -169,6 +187,26 @@ class _OwnerAddUnitScreenState extends ConsumerState<OwnerAddUnitScreen> {
                     onChanged: (v) => setSheetState(() => category = v ?? category),
                   ),
                   const SizedBox(height: AppDimens.md),
+                  if (category == 'meal_plan') ...[
+                    DropdownButtonFormField<String>(
+                      initialValue: selectedMealOption,
+                      decoration: _dec(isArabic ? 'نوع الوجبة' : 'Meal type'),
+                      items: mealOptions
+                          .map((m) => DropdownMenuItem(value: m['value'], child: Text(isArabic ? m['ar']! : m['en']!)))
+                          .toList(),
+                      onChanged: (v) {
+                        setSheetState(() {
+                          selectedMealOption = v ?? '';
+                          if (selectedMealOption.isNotEmpty) {
+                            final parts = selectedMealOption.split('|');
+                            nameArCtrl.text = parts[0];
+                            nameEnCtrl.text = parts[1];
+                          }
+                        });
+                      },
+                    ),
+                    const SizedBox(height: AppDimens.md),
+                  ],
                   TextField(controller: nameArCtrl, decoration: _dec(AppStrings.t(isArabic, 'unit_name_ar'))),
                   const SizedBox(height: AppDimens.md),
                   TextField(controller: nameEnCtrl, decoration: _dec(AppStrings.t(isArabic, 'unit_name_en'))),
@@ -342,6 +380,24 @@ class _OwnerAddUnitScreenState extends ConsumerState<OwnerAddUnitScreen> {
               const SizedBox(height: AppDimens.md),
               TextFormField(controller: _unitNumberCtrl, decoration: _dec(AppStrings.t(isArabic, 'unit_number'))),
               const SizedBox(height: AppDimens.md),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _unitTypeArCtrl,
+                      decoration: _dec(AppStrings.t(isArabic, 'unit_type_ar')),
+                    ),
+                  ),
+                  const SizedBox(width: AppDimens.sm),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _unitTypeEnCtrl,
+                      decoration: _dec(AppStrings.t(isArabic, 'unit_type_en')),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppDimens.md),
               TextFormField(
                 controller: _descArCtrl,
                 maxLines: 3,
@@ -362,6 +418,15 @@ class _OwnerAddUnitScreenState extends ConsumerState<OwnerAddUnitScreen> {
                       controller: _capacityCtrl,
                       keyboardType: TextInputType.number,
                       decoration: _dec(AppStrings.t(isArabic, 'capacity')),
+                      validator: (v) => (v == null || v.trim().isEmpty) ? AppStrings.t(isArabic, 'required_field') : null,
+                    ),
+                  ),
+                  const SizedBox(width: AppDimens.sm),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _bedCountCtrl,
+                      keyboardType: TextInputType.number,
+                      decoration: _dec(AppStrings.t(isArabic, 'bed_count')),
                       validator: (v) => (v == null || v.trim().isEmpty) ? AppStrings.t(isArabic, 'required_field') : null,
                     ),
                   ),

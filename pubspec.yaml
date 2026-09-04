@@ -1,11 +1,7 @@
 name: allowners
 description: "All Owners - تطبيق حجوزات الفنادق والشقق الفندقية"
 publish_to: 'none'
-<<<<<<< HEAD
-version: 2.2.1+6
-=======
-version: 2.2.1+8
->>>>>>> a560ba7947e8550f8e59d78cb579324a641a2f35
+version: 2.2.1+10
 
 environment:
   sdk: '>=3.3.0 <4.0.0'

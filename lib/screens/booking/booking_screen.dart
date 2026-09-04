@@ -15,7 +15,11 @@ enum PaymentMethod { online, atHotel }
 
 class BookingScreen extends ConsumerStatefulWidget {
   final HotelModel hotel;
-  const BookingScreen({super.key, required this.hotel});
+  final int? unitId;
+  final String? unitName;
+  final double? unitPricePerNight;
+  final String? unitImageUrl;
+  const BookingScreen({super.key, required this.hotel, this.unitId, this.unitName, this.unitPricePerNight, this.unitImageUrl});
 
   @override
   ConsumerState<BookingScreen> createState() => _BookingScreenState();
@@ -34,10 +38,72 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
   final _expiryController = TextEditingController();
   final _cvvController = TextEditingController();
   final _cardNameController = TextEditingController();
+  final _guestIdNumberController = TextEditingController();
 
   bool _isSubmitting = false;
 
+  // إضافات الوحدة الحقيقية (سرير/وجبات/أخرى) يلي حددها المالك — لو في وحدة محددة
+  List<Map<String, dynamic>> _unitAddons = [];
+  bool _loadingAddons = false;
+  int? _selectedMealAddonId; // null = بدون وجبات
+  final Set<int> _selectedOtherAddonIds = {};
+
   int get _nights => _checkOut.difference(_checkIn).inDays.clamp(1, 365);
+
+  double get _basePricePerNight => widget.unitPricePerNight ?? widget.hotel.pricePerNight;
+
+  List<Map<String, dynamic>> get _mealAddons =>
+      _unitAddons.where((a) => a['category'] == 'meal_plan').toList()
+        ..sort((a, b) {
+          const order = {'فطور': 0, 'Breakfast': 0, 'غداء': 1, 'Lunch': 1, 'عشاء': 2, 'Dinner': 2};
+          return (order[a['name_ar']] ?? 9).compareTo(order[b['name_ar']] ?? 9);
+        });
+
+  List<Map<String, dynamic>> get _otherAddons =>
+      _unitAddons.where((a) => a['category'] != 'meal_plan').toList();
+
+  double _addonLineTotal(Map<String, dynamic> addon) {
+    final price = (addon['price'] as num).toDouble();
+    switch (addon['price_unit']) {
+      case 'per_stay':
+        return price;
+      case 'per_person_night':
+        return price * _nights * (_guests < 1 ? 1 : _guests);
+      default:
+        return price * _nights;
+    }
+  }
+
+  double get _addonsTotal {
+    double sum = 0;
+    if (_selectedMealAddonId != null) {
+      final meal = _unitAddons.firstWhere((a) => a['id'] == _selectedMealAddonId, orElse: () => {});
+      if (meal.isNotEmpty) sum += _addonLineTotal(meal);
+    }
+    for (final id in _selectedOtherAddonIds) {
+      final addon = _unitAddons.firstWhere((a) => a['id'] == id, orElse: () => {});
+      if (addon.isNotEmpty) sum += _addonLineTotal(addon);
+    }
+    return sum;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.unitId != null) _loadAddons();
+  }
+
+  Future<void> _loadAddons() async {
+    setState(() => _loadingAddons = true);
+    try {
+      final addons = await _hotelService.getUnitAddons(widget.unitId!);
+      if (mounted) setState(() => _unitAddons = addons);
+    } catch (_) {
+      // فشل تحميل الإضافات مش مشكلة قاتلة — الحجز الأساسي يضل شغال بدونها
+    } finally {
+      if (mounted) setState(() => _loadingAddons = false);
+    }
+  }
 
   @override
   void dispose() {
@@ -45,6 +111,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
     _expiryController.dispose();
     _cvvController.dispose();
     _cardNameController.dispose();
+    _guestIdNumberController.dispose();
     super.dispose();
   }
 
@@ -92,10 +159,22 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
       }
     }
 
+    if (_guestIdNumberController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppStrings.t(isArabic, 'guest_id_number_required'))),
+      );
+      return;
+    }
+
     setState(() => _isSubmitting = true);
     try {
+      final addonIds = <int>[
+        if (_selectedMealAddonId != null) _selectedMealAddonId!,
+        ..._selectedOtherAddonIds,
+      ];
       final booking = await _hotelService.createBooking(
         hotelId: widget.hotel.id,
+        unitId: widget.unitId,
         checkIn: _checkIn,
         checkOut: _checkOut,
         guests: _guests,
@@ -105,6 +184,8 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
             : null,
         mealType: _mealType,
         extraBed: _extraBed,
+        addonIds: addonIds.isNotEmpty ? addonIds : null,
+        guestIdNumber: _guestIdNumberController.text.trim(),
       );
 
       if (!mounted) return;
@@ -142,62 +223,81 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
     final textTheme = Theme.of(context).textTheme;
     final hotel = widget.hotel;
 
-    final roomPrice = hotel.pricePerNight * _nights;
-    final taxes = roomPrice * 0.15;
-    final total = roomPrice + taxes;
+    final roomPrice = _basePricePerNight * _nights;
+    final addonsTotal = _addonsTotal;
+    final taxes = (roomPrice + addonsTotal) * 0.15;
+    final total = roomPrice + addonsTotal + taxes;
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(title: Text(AppStrings.t(isArabic, 'booking_summary'))),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(AppDimens.pagePadding),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(AppDimens.md),
-                      decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        borderRadius: BorderRadius.circular(AppDimens.radiusLg),
-                        border: Border.all(color: AppColors.cardBorder),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 50,
-                            height: 50,
-                            clipBehavior: Clip.antiAlias,
-                            decoration: BoxDecoration(
-                              color: AppColors.surfaceMuted,
-                              borderRadius: BorderRadius.circular(AppDimens.radiusMd),
-                            ),
-                            child: CachedNetworkImage(
-                              imageUrl: hotel.imageUrl,
-                              fit: BoxFit.cover,
-                              errorWidget: (context, url, error) =>
-                                  Icon(Icons.image_outlined, color: AppColors.textMuted),
+      body: Column(
+        children: [
+          Expanded(
+            child: CustomScrollView(
+              slivers: [
+                SliverAppBar(
+                  expandedHeight: 240,
+                  pinned: true,
+                  backgroundColor: AppColors.ink,
+                  iconTheme: const IconThemeData(color: Colors.white),
+                  flexibleSpace: FlexibleSpaceBar(
+                    background: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        CachedNetworkImage(
+                          imageUrl: widget.unitImageUrl ?? hotel.imageUrl,
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) => Container(color: AppColors.surfaceMuted),
+                          errorWidget: (context, url, error) => Container(
+                            color: AppColors.surfaceMuted,
+                            child: const Icon(Icons.image_outlined, size: 40, color: AppColors.textMuted),
+                          ),
+                        ),
+                        Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [Colors.black.withOpacity(0.05), Colors.black.withOpacity(0.75)],
+                              stops: const [0.4, 1.0],
                             ),
                           ),
-                          const SizedBox(width: AppDimens.sm),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(hotel.name, style: textTheme.titleSmall),
-                                Text(hotel.city(isArabic),
-                                    style: textTheme.bodySmall?.copyWith(color: AppColors.textMuted)),
-                              ],
-                            ),
+                        ),
+                        Positioned(
+                          left: AppDimens.pagePadding,
+                          right: AppDimens.pagePadding,
+                          bottom: AppDimens.md,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                widget.unitName ?? hotel.name,
+                                style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800),
+                              ),
+                              const SizedBox(height: 2),
+                              Row(
+                                children: [
+                                  const Icon(Icons.location_on_outlined, color: Colors.white70, size: 14),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    widget.unitName != null ? hotel.name : hotel.city(isArabic),
+                                    style: const TextStyle(color: Colors.white70, fontSize: 13),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: AppDimens.lg),
-
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppDimens.pagePadding),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                     Text(AppStrings.t(isArabic, 'your_stay'), style: textTheme.titleMedium),
                     const SizedBox(height: AppDimens.sm),
                     Row(
@@ -248,58 +348,148 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                         ),
                       ],
                     ),
+                    const SizedBox(height: AppDimens.md),
+                    TextField(
+                      controller: _guestIdNumberController,
+                      decoration: InputDecoration(labelText: AppStrings.t(isArabic, 'guest_id_number')),
+                    ),
                     const SizedBox(height: AppDimens.lg),
 
-                    Text(AppStrings.t(isArabic, 'meal_type'), style: textTheme.titleMedium),
-                    const SizedBox(height: AppDimens.sm),
-                    Wrap(
-                      spacing: AppDimens.sm,
-                      runSpacing: AppDimens.sm,
-                      children: ['none', 'breakfast', 'lunch', 'dinner', 'all'].map((m) {
-                        final selected = _mealType == m;
-                        return ChoiceChip(
-                          label: Text(AppStrings.t(isArabic, 'meal_option_$m')),
-                          selected: selected,
-                          onSelected: (_) => setState(() => _mealType = m),
-                          selectedColor: AppColors.gold.withOpacity(0.2),
-                          labelStyle: TextStyle(color: selected ? AppColors.goldDark : AppColors.textMuted, fontWeight: selected ? FontWeight.w700 : FontWeight.w400),
-                        );
-                      }).toList(),
-                    ),
-
-                    if (widget.hotel.extraBedPrice != null) ...[
-                      const SizedBox(height: AppDimens.lg),
-                      Container(
-                        padding: const EdgeInsets.all(AppDimens.md),
-                        decoration: BoxDecoration(
-                          color: AppColors.surface,
-                          borderRadius: BorderRadius.circular(AppDimens.radiusLg),
-                          border: Border.all(color: AppColors.cardBorder),
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                    if (widget.unitId != null) ...[
+                      // إضافات الوحدة الحقيقية يلي حددها المالك (وجبات: فطور/غداء/عشاء + سرير إضافي + إضافات أخرى)
+                      if (_loadingAddons)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: AppDimens.md),
+                          child: Center(child: CircularProgressIndicator()),
+                        )
+                      else ...[
+                        if (_mealAddons.isNotEmpty) ...[
+                          Text(AppStrings.t(isArabic, 'meal_type'), style: textTheme.titleMedium),
+                          const SizedBox(height: AppDimens.sm),
+                          _MealOptionTile(
+                            label: AppStrings.t(isArabic, 'meal_option_none'),
+                            priceLabel: AppStrings.t(isArabic, 'free'),
+                            selected: _selectedMealAddonId == null,
+                            onTap: () => setState(() => _selectedMealAddonId = null),
+                          ),
+                          ..._mealAddons.map((m) => _MealOptionTile(
+                                label: isArabic ? (m['name_ar']?.toString() ?? '') : (m['name_en']?.toString() ?? ''),
+                                priceLabel: '+${_addonLineTotal(m).toStringAsFixed(0)} ${AppStrings.t(isArabic, "sar")}',
+                                selected: _selectedMealAddonId == m['id'],
+                                onTap: () => setState(() => _selectedMealAddonId = m['id'] as int),
+                              )),
+                          const SizedBox(height: AppDimens.lg),
+                        ],
+                        if (_otherAddons.isNotEmpty) ...[
+                          Text(AppStrings.t(isArabic, 'unit_addons_title'), style: textTheme.titleMedium),
+                          const SizedBox(height: AppDimens.sm),
+                          ..._otherAddons.map((a) {
+                            final id = a['id'] as int;
+                            final selected = _selectedOtherAddonIds.contains(id);
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: AppDimens.sm),
+                              padding: const EdgeInsets.all(AppDimens.md),
+                              decoration: BoxDecoration(
+                                color: AppColors.surface,
+                                borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+                                border: Border.all(color: AppColors.cardBorder),
+                              ),
+                              child: Row(
                                 children: [
-                                  Text(AppStrings.t(isArabic, 'add_extra_bed'), style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
-                                  Text(
-                                    widget.hotel.extraBedPrice == 0
-                                        ? AppStrings.t(isArabic, 'free')
-                                        : '+${widget.hotel.extraBedPrice!.toStringAsFixed(0)} ${AppStrings.t(isArabic, 'sar')} / ${AppStrings.t(isArabic, 'night')}',
-                                    style: textTheme.bodySmall?.copyWith(color: AppColors.textMuted),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          '${a['category'] == 'extra_bed' ? '🛏️ ' : '✨ '}${isArabic ? (a['name_ar']?.toString() ?? '') : (a['name_en']?.toString() ?? '')}',
+                                          style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                                        ),
+                                        Text(
+                                          '+${_addonLineTotal(a).toStringAsFixed(0)} ${AppStrings.t(isArabic, "sar")}',
+                                          style: textTheme.bodySmall?.copyWith(color: AppColors.textMuted),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Switch(
+                                    value: selected,
+                                    activeColor: AppColors.gold,
+                                    onChanged: (v) => setState(() {
+                                      if (v) {
+                                        _selectedOtherAddonIds.add(id);
+                                      } else {
+                                        _selectedOtherAddonIds.remove(id);
+                                      }
+                                    }),
                                   ),
                                 ],
                               ),
+                            );
+                          }),
+                          const SizedBox(height: AppDimens.md),
+                        ],
+                        if (_mealAddons.isEmpty && _otherAddons.isEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: AppDimens.md),
+                            child: Text(
+                              AppStrings.t(isArabic, 'no_addons_yet'),
+                              style: textTheme.bodySmall?.copyWith(color: AppColors.textMuted),
                             ),
-                            Switch(
-                              value: _extraBed,
-                              activeColor: AppColors.gold,
-                              onChanged: (v) => setState(() => _extraBed = v),
-                            ),
-                          ],
-                        ),
+                          ),
+                      ],
+                    ] else ...[
+                      // مافي وحدة محددة (حجز على مستوى الفندق العام) — النظام القديم كتوافق
+                      Text(AppStrings.t(isArabic, 'meal_type'), style: textTheme.titleMedium),
+                      const SizedBox(height: AppDimens.sm),
+                      Wrap(
+                        spacing: AppDimens.sm,
+                        runSpacing: AppDimens.sm,
+                        children: ['none', 'breakfast', 'lunch', 'dinner', 'all'].map((m) {
+                          final selected = _mealType == m;
+                          return ChoiceChip(
+                            label: Text(AppStrings.t(isArabic, 'meal_option_$m')),
+                            selected: selected,
+                            onSelected: (_) => setState(() => _mealType = m),
+                            selectedColor: AppColors.gold.withOpacity(0.2),
+                            labelStyle: TextStyle(color: selected ? AppColors.goldDark : AppColors.textMuted, fontWeight: selected ? FontWeight.w700 : FontWeight.w400),
+                          );
+                        }).toList(),
                       ),
+
+                      if (widget.hotel.extraBedPrice != null) ...[
+                        const SizedBox(height: AppDimens.lg),
+                        Container(
+                          padding: const EdgeInsets.all(AppDimens.md),
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+                            border: Border.all(color: AppColors.cardBorder),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(AppStrings.t(isArabic, 'add_extra_bed'), style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+                                    Text(
+                                      widget.hotel.extraBedPrice == 0
+                                          ? AppStrings.t(isArabic, 'free')
+                                          : '+${widget.hotel.extraBedPrice!.toStringAsFixed(0)} ${AppStrings.t(isArabic, 'sar')} / ${AppStrings.t(isArabic, 'night')}',
+                                      style: textTheme.bodySmall?.copyWith(color: AppColors.textMuted),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Switch(
+                                value: _extraBed,
+                                activeColor: AppColors.gold,
+                                onChanged: (v) => setState(() => _extraBed = v),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ],
                     const SizedBox(height: AppDimens.lg),
 
@@ -359,6 +549,8 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                     Text(AppStrings.t(isArabic, 'price_details'), style: textTheme.titleMedium),
                     const SizedBox(height: AppDimens.sm),
                     _PriceRow(label: AppStrings.t(isArabic, 'room_price'), value: roomPrice, isArabic: isArabic),
+                    if (addonsTotal > 0)
+                      _PriceRow(label: AppStrings.t(isArabic, 'unit_addons_title'), value: addonsTotal, isArabic: isArabic),
                     _PriceRow(label: AppStrings.t(isArabic, 'taxes_fees'), value: taxes, isArabic: isArabic),
                     const Divider(height: 24),
                     _PriceRow(
@@ -368,33 +560,35 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                       isTotal: true,
                     ),
                     const SizedBox(height: AppDimens.xl),
-                  ],
-                ),
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.all(AppDimens.pagePadding),
-              decoration: BoxDecoration(color: AppColors.surface, boxShadow: AppColors.cardShadow),
-              child: SafeArea(
-                top: false,
-                child: SizedBox(
-                  width: double.infinity,
-                  height: AppDimens.buttonHeight,
-                  child: ElevatedButton(
-                    onPressed: _isSubmitting ? null : _confirmBooking,
-                    child: _isSubmitting
-                        ? const SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(strokeWidth: 2.4, color: Colors.white),
-                          )
-                        : Text(AppStrings.t(isArabic, 'confirm_booking')),
+                      ],
+                    ),
                   ),
                 ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.all(AppDimens.pagePadding),
+            decoration: BoxDecoration(color: AppColors.surface, boxShadow: AppColors.cardShadow),
+            child: SafeArea(
+              top: false,
+              child: SizedBox(
+                width: double.infinity,
+                height: AppDimens.buttonHeight,
+                child: ElevatedButton(
+                  onPressed: _isSubmitting ? null : _confirmBooking,
+                  child: _isSubmitting
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(strokeWidth: 2.4, color: Colors.white),
+                        )
+                      : Text(AppStrings.t(isArabic, 'confirm_booking')),
+                ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -531,6 +725,44 @@ class _PriceRow extends StatelessWidget {
           Text('${value.toInt()} ${AppStrings.t(isArabic, "sar")}',
               style: isTotal ? style?.copyWith(color: AppColors.goldDark) : style),
         ],
+      ),
+    );
+  }
+}
+
+class _MealOptionTile extends StatelessWidget {
+  final String label;
+  final String priceLabel;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _MealOptionTile({required this.label, required this.priceLabel, required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppDimens.radiusMd),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: AppDimens.sm),
+        padding: const EdgeInsets.all(AppDimens.md),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.gold.withOpacity(0.08) : AppColors.surface,
+          borderRadius: BorderRadius.circular(AppDimens.radiusMd),
+          border: Border.all(color: selected ? AppColors.gold : AppColors.cardBorder, width: selected ? 1.5 : 1),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              selected ? Icons.radio_button_checked_rounded : Icons.radio_button_off_rounded,
+              color: selected ? AppColors.goldDark : AppColors.textMuted,
+              size: 20,
+            ),
+            const SizedBox(width: AppDimens.sm),
+            Expanded(child: Text(label, style: Theme.of(context).textTheme.bodyMedium)),
+            Text(priceLabel, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.goldDark, fontWeight: FontWeight.w600)),
+          ],
+        ),
       ),
     );
   }
