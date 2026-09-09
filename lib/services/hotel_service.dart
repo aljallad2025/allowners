@@ -5,6 +5,29 @@ import 'api_client.dart';
 class HotelService {
   final Dio _dio = ApiClient.instance.dio;
 
+  Future<List<Map<String, dynamic>>> browseUnits({
+    String? search,
+    double? minPrice,
+    double? maxPrice,
+    int? minCapacity,
+    String sort = 'newest',
+    int limit = 20,
+  }) async {
+    try {
+      final res = await _dio.get('/units/browse.php', queryParameters: {
+        if (search != null && search.isNotEmpty) 'q': search,
+        if (minPrice != null) 'min_price': minPrice,
+        if (maxPrice != null) 'max_price': maxPrice,
+        if (minCapacity != null) 'min_capacity': minCapacity,
+        'sort': sort,
+        'limit': limit,
+      });
+      return (res.data['units'] as List).cast<Map<String, dynamic>>();
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
   Future<List<HotelModel>> listHotels({
     String? city,
     double? minPrice,

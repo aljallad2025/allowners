@@ -62,6 +62,15 @@ class OwnerService {
     }
   }
 
+  Future<Map<String, dynamic>> getMyCommission() async {
+    try {
+      final res = await _dio.get('/user/agent-commission.php');
+      return res.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
   Future<List<Map<String, dynamic>>> getMaintenanceRequests() async {
     try {
       final res = await _dio.get('/user/owner-maintenance.php');

@@ -13,18 +13,13 @@ class FiltersSheet extends ConsumerStatefulWidget {
 }
 
 class _FiltersSheetState extends ConsumerState<FiltersSheet> {
-  RangeValues _priceRange = const RangeValues(200, 1500);
-  int _selectedStars = 0;
-  final Set<String> _selectedAmenities = {};
-
-  final List<String> _amenityKeysAr = ['واي فاي مجاني', 'موقف سيارات', 'مسبح', 'صالة رياضية', 'إفطار مشمول'];
-  final List<String> _amenityKeysEn = ['Free WiFi', 'Parking', 'Pool', 'Gym', 'Breakfast Included'];
+  RangeValues _priceRange = const RangeValues(0, 3000);
+  int _minCapacity = 0;
 
   @override
   Widget build(BuildContext context) {
     final isArabic = ref.watch(localeProvider).languageCode == 'ar';
     final textTheme = Theme.of(context).textTheme;
-    final amenities = isArabic ? _amenityKeysAr : _amenityKeysEn;
 
     return Container(
       decoration: const BoxDecoration(
@@ -51,9 +46,8 @@ class _FiltersSheetState extends ConsumerState<FiltersSheet> {
                 Text(AppStrings.t(isArabic, 'filters'), style: textTheme.headlineSmall),
                 TextButton(
                   onPressed: () => setState(() {
-                    _priceRange = const RangeValues(200, 1500);
-                    _selectedStars = 0;
-                    _selectedAmenities.clear();
+                    _priceRange = const RangeValues(0, 3000);
+                    _minCapacity = 0;
                   }),
                   child: Text(AppStrings.t(isArabic, 'reset')),
                 ),
@@ -83,52 +77,15 @@ class _FiltersSheetState extends ConsumerState<FiltersSheet> {
             ),
             const SizedBox(height: AppDimens.md),
 
-            Text(AppStrings.t(isArabic, 'star_rating'), style: textTheme.titleSmall),
-            const SizedBox(height: AppDimens.sm),
-            Row(
-              children: List.generate(5, (i) {
-                final stars = i + 1;
-                final selected = _selectedStars == stars;
-                return Padding(
-                  padding: const EdgeInsets.only(right: AppDimens.sm),
-                  child: InkWell(
-                    onTap: () => setState(() => _selectedStars = selected ? 0 : stars),
-                    borderRadius: BorderRadius.circular(AppDimens.radiusFull),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: selected ? AppColors.ink : AppColors.surfaceMuted,
-                        borderRadius: BorderRadius.circular(AppDimens.radiusFull),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text('$stars',
-                              style: TextStyle(
-                                  color: selected ? Colors.white : AppColors.textPrimary,
-                                  fontWeight: FontWeight.w600)),
-                          Icon(Icons.star_rounded,
-                              size: 14, color: selected ? AppColors.gold : AppColors.textMuted),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              }),
-            ),
-            const SizedBox(height: AppDimens.md),
-
-            Text(AppStrings.t(isArabic, 'amenities'), style: textTheme.titleSmall),
+            Text(AppStrings.t(isArabic, 'guests'), style: textTheme.titleSmall),
             const SizedBox(height: AppDimens.sm),
             Wrap(
               spacing: AppDimens.sm,
-              runSpacing: AppDimens.sm,
-              children: amenities.map((a) {
-                final selected = _selectedAmenities.contains(a);
+              children: [0, 1, 2, 3, 4, 6, 8].map((n) {
+                final selected = _minCapacity == n;
+                final label = n == 0 ? AppStrings.t(isArabic, 'any') : '$n+';
                 return InkWell(
-                  onTap: () => setState(() {
-                    selected ? _selectedAmenities.remove(a) : _selectedAmenities.add(a);
-                  }),
+                  onTap: () => setState(() => _minCapacity = n),
                   borderRadius: BorderRadius.circular(AppDimens.radiusFull),
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -137,7 +94,7 @@ class _FiltersSheetState extends ConsumerState<FiltersSheet> {
                       borderRadius: BorderRadius.circular(AppDimens.radiusFull),
                     ),
                     child: Text(
-                      a,
+                      label,
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
@@ -154,7 +111,11 @@ class _FiltersSheetState extends ConsumerState<FiltersSheet> {
               width: double.infinity,
               height: AppDimens.buttonHeight,
               child: ElevatedButton(
-                onPressed: () => Navigator.of(context).pop(),
+                onPressed: () => Navigator.of(context).pop({
+                  'min_price': _priceRange.start > 0 ? _priceRange.start : null,
+                  'max_price': _priceRange.end < 3000 ? _priceRange.end : null,
+                  'min_capacity': _minCapacity > 0 ? _minCapacity : null,
+                }),
                 child: Text(AppStrings.t(isArabic, 'apply_filters')),
               ),
             ),

@@ -6,10 +6,9 @@ import '../../theme/app_dimens.dart';
 import '../../utils/app_strings.dart';
 import '../../utils/locale_provider.dart';
 import '../../utils/session_provider.dart';
-import '../../models/hotel_model.dart';
 import '../../services/hotel_service.dart';
 import '../search/search_screen.dart';
-import '../hotel/hotel_details_screen.dart';
+import '../unit/unit_details_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -20,26 +19,27 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   final HotelService _hotelService = HotelService();
-  List<HotelModel> _hotels = [];
+  List<Map<String, dynamic>> _units = [];
   bool _isLoading = true;
   String? _error;
+  String _sort = 'newest';
 
   @override
   void initState() {
     super.initState();
-    _loadHotels();
+    _loadUnits();
   }
 
-  Future<void> _loadHotels() async {
+  Future<void> _loadUnits() async {
     setState(() {
       _isLoading = true;
       _error = null;
     });
     try {
-      final hotels = await _hotelService.listHotels();
+      final units = await _hotelService.browseUnits(sort: _sort, limit: 12);
       if (!mounted) return;
       setState(() {
-        _hotels = hotels;
+        _units = units;
         _isLoading = false;
       });
     } catch (e) {
@@ -56,40 +56,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final isArabic = ref.watch(localeProvider).languageCode == 'ar';
     final textTheme = Theme.of(context).textTheme;
     final userName = ref.watch(sessionProvider).user?.fullName.split(' ').first;
-    final hotels = _hotels;
+    final units = _units;
 
     final categories = [
       {'icon': Icons.king_bed_outlined, 'key': 'hotels', 'color': AppColors.ink},
       {'icon': Icons.apartment_rounded, 'key': 'apartments', 'color': AppColors.secondary},
       {'icon': Icons.beach_access_rounded, 'key': 'resorts', 'color': AppColors.goldDark},
       {'icon': Icons.cabin_outlined, 'key': 'chalets', 'color': AppColors.success},
-    ];
-
-    final destinations = [
-      {
-        'name_ar': 'الرياض',
-        'name_en': 'Riyadh',
-        'count': '320',
-        'image': 'https://images.unsplash.com/photo-1578894381163-e72c17f2d45f?w=600&q=80',
-      },
-      {
-        'name_ar': 'جدة',
-        'name_en': 'Jeddah',
-        'count': '210',
-        'image': 'https://images.unsplash.com/photo-1591604442743-26d4c1494ed4?w=600&q=80',
-      },
-      {
-        'name_ar': 'مكة المكرمة',
-        'name_en': 'Makkah',
-        'count': '180',
-        'image': 'https://images.unsplash.com/photo-1565019011521-b0575f9e0495?w=600&q=80',
-      },
-      {
-        'name_ar': 'أبها',
-        'name_en': 'Abha',
-        'count': '95',
-        'image': 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=600&q=80',
-      },
     ];
 
     return Scaffold(
@@ -198,7 +171,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           Navigator.of(context).push(
                             MaterialPageRoute(
                               builder: (_) => SearchScreen(
-                                initialCategoryKey: cat['key'] as String,
+                                initialQuery: AppStrings.t(isArabic, cat['key'] as String),
                               ),
                             ),
                           );
@@ -229,19 +202,60 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
             const SliverToBoxAdapter(child: SizedBox(height: AppDimens.md)),
 
-            // ===== Featured Deals =====
+            // ===== أحدث الأجنحة =====
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: AppDimens.pagePadding),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(AppStrings.t(isArabic, 'featured_deals'), style: textTheme.headlineSmall),
-                    TextButton(onPressed: () {}, child: Text(AppStrings.t(isArabic, 'see_all'))),
+                    Text(AppStrings.t(isArabic, 'newest_suites'), style: textTheme.headlineSmall),
+                    TextButton(
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const SearchScreen()),
+                      ),
+                      child: Text(AppStrings.t(isArabic, 'see_all')),
+                    ),
                   ],
                 ),
               ),
             ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppDimens.pagePadding),
+                child: Row(
+                  children: [
+                    _SortChip(
+                      label: AppStrings.t(isArabic, 'sort_newest'),
+                      selected: _sort == 'newest',
+                      onTap: () {
+                        setState(() => _sort = 'newest');
+                        _loadUnits();
+                      },
+                    ),
+                    const SizedBox(width: AppDimens.sm),
+                    _SortChip(
+                      label: AppStrings.t(isArabic, 'sort_price_asc'),
+                      selected: _sort == 'price_asc',
+                      onTap: () {
+                        setState(() => _sort = 'price_asc');
+                        _loadUnits();
+                      },
+                    ),
+                    const SizedBox(width: AppDimens.sm),
+                    _SortChip(
+                      label: AppStrings.t(isArabic, 'sort_capacity'),
+                      selected: _sort == 'capacity',
+                      onTap: () {
+                        setState(() => _sort = 'capacity');
+                        _loadUnits();
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SliverToBoxAdapter(child: SizedBox(height: AppDimens.sm)),
             SliverToBoxAdapter(
               child: SizedBox(
                 height: 260,
@@ -261,111 +275,41 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 Text(_error!, style: textTheme.bodySmall, textAlign: TextAlign.center),
                                 const SizedBox(height: 8),
                                 TextButton(
-                                  onPressed: _loadHotels,
+                                  onPressed: _loadUnits,
                                   child: Text(isArabic ? 'إعادة المحاولة' : 'Retry'),
                                 ),
                               ],
                             ),
                           )
-                        : hotels.isEmpty
+                        : units.isEmpty
                             ? Center(
                                 child: Text(
-                                  isArabic ? 'ما في فنادق متاحة حالياً' : 'No hotels available',
+                                  AppStrings.t(isArabic, 'no_units'),
                                   style: textTheme.bodySmall,
                                 ),
                               )
                             : ListView.builder(
                                 scrollDirection: Axis.horizontal,
                                 padding: const EdgeInsets.symmetric(horizontal: AppDimens.pagePadding),
-                                itemCount: hotels.length,
+                                itemCount: units.length,
                                 itemBuilder: (context, index) {
-                                  final hotel = hotels[index];
+                                  final unit = units[index];
                                   return Padding(
                                     padding: const EdgeInsets.only(left: AppDimens.md),
-                                    child: _HotelCard(
-                                      hotel: hotel,
+                                    child: _UnitCard(
+                                      unit: unit,
                                       isArabic: isArabic,
                                       onTap: () {
                                         Navigator.of(context).push(
-                                          MaterialPageRoute(builder: (_) => HotelDetailsScreen(hotel: hotel)),
+                                          MaterialPageRoute(
+                                            builder: (_) => UnitDetailsScreen(unitId: unit['id'] as int),
+                                          ),
                                         );
                                       },
                                     ),
                                   );
                                 },
                               ),
-              ),
-            ),
-            const SliverToBoxAdapter(child: SizedBox(height: AppDimens.lg)),
-
-            // ===== Popular destinations =====
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppDimens.pagePadding),
-                child: Text(AppStrings.t(isArabic, 'popular_destinations'), style: textTheme.headlineSmall),
-              ),
-            ),
-            SliverPadding(
-              padding: const EdgeInsets.all(AppDimens.pagePadding),
-              sliver: SliverGrid(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: AppDimens.md,
-                  crossAxisSpacing: AppDimens.md,
-                  childAspectRatio: 1.3,
-                ),
-                delegate: SliverChildListDelegate(
-                  destinations.map((d) {
-                    return InkWell(
-                      onTap: () {
-                        final cityName = isArabic ? d['name_ar']! : d['name_en']!;
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => SearchScreen(initialQuery: cityName),
-                          ),
-                        );
-                      },
-                      borderRadius: BorderRadius.circular(AppDimens.radiusLg),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(AppDimens.radiusLg),
-                        child: Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            CachedNetworkImage(
-                              imageUrl: d['image']!,
-                              fit: BoxFit.cover,
-                              placeholder: (context, url) => Container(color: AppColors.surfaceMuted),
-                              errorWidget: (context, url, error) => Container(
-                                decoration: const BoxDecoration(gradient: AppColors.heroDarkGradient),
-                              ),
-                            ),
-                            Container(
-                              decoration: const BoxDecoration(gradient: AppColors.darkOverlayGradient),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(AppDimens.md),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  Text(
-                                    isArabic ? d['name_ar']! : d['name_en']!,
-                                    style: const TextStyle(
-                                        color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700),
-                                  ),
-                                  Text(
-                                    '${d['count']} ${AppStrings.t(isArabic, "hotels")}',
-                                    style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 12),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
               ),
             ),
             const SliverToBoxAdapter(child: SizedBox(height: AppDimens.xxl)),
@@ -376,16 +320,52 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 }
 
-class _HotelCard extends StatelessWidget {
-  final HotelModel hotel;
+class _SortChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  const _SortChip({required this.label, required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppDimens.radiusFull),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.gold.withOpacity(0.15) : AppColors.surfaceMuted,
+          borderRadius: BorderRadius.circular(AppDimens.radiusFull),
+          border: Border.all(color: selected ? AppColors.gold : Colors.transparent),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12.5,
+            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+            color: selected ? AppColors.goldDark : AppColors.textMuted,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _UnitCard extends StatelessWidget {
+  final Map<String, dynamic> unit;
   final bool isArabic;
   final VoidCallback onTap;
 
-  const _HotelCard({required this.hotel, required this.isArabic, required this.onTap});
+  const _UnitCard({required this.unit, required this.isArabic, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final name = isArabic ? (unit['name_ar']?.toString() ?? '') : (unit['name_en']?.toString() ?? '');
+    final hotelName = unit['hotel_name']?.toString() ?? '';
+    final price = (unit['price_per_night'] as num?)?.toInt() ?? 0;
+    final capacity = unit['capacity'] ?? 1;
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppDimens.radiusLg),
@@ -400,80 +380,47 @@ class _HotelCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Stack(
-              children: [
-                ClipRRect(
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(AppDimens.radiusLg)),
-                  child: CachedNetworkImage(
-                    imageUrl: hotel.imageUrl,
-                    height: 130,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    placeholder: (context, url) => Container(
-                      height: 130,
-                      color: AppColors.surfaceMuted,
-                      child: const Center(
-                        child: SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.gold),
-                        ),
-                      ),
-                    ),
-                    errorWidget: (context, url, error) => Container(
-                      height: 130,
-                      color: AppColors.surfaceMuted,
-                      child: Icon(Icons.image_outlined, color: AppColors.textMuted, size: 36),
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(AppDimens.radiusLg)),
+              child: CachedNetworkImage(
+                imageUrl: unit['cover_image']?.toString() ?? '',
+                height: 130,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                placeholder: (context, url) => Container(
+                  height: 130,
+                  color: AppColors.surfaceMuted,
+                  child: const Center(
+                    child: SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.gold),
                     ),
                   ),
                 ),
-                Positioned(
-                  top: 10,
-                  right: isArabic ? null : 10,
-                  left: isArabic ? 10 : null,
-                  child: Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.9), shape: BoxShape.circle),
-                    child: Icon(
-                      hotel.isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                      size: 16,
-                      color: hotel.isFavorite ? AppColors.danger : AppColors.textMuted,
-                    ),
-                  ),
+                errorWidget: (context, url, error) => Container(
+                  height: 130,
+                  color: AppColors.surfaceMuted,
+                  child: Icon(Icons.image_outlined, color: AppColors.textMuted, size: 36),
                 ),
-                if (hotel.freeCancellation)
-                  Positioned(
-                    bottom: 8,
-                    left: isArabic ? null : 8,
-                    right: isArabic ? 8 : null,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppColors.success,
-                        borderRadius: BorderRadius.circular(AppDimens.radiusFull),
-                      ),
-                      child: Text(
-                        AppStrings.t(isArabic, 'free_cancellation'),
-                        style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  ),
-              ],
+              ),
             ),
             Padding(
               padding: const EdgeInsets.all(AppDimens.sm),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(hotel.name, style: textTheme.titleSmall, maxLines: 1, overflow: TextOverflow.ellipsis),
+                  Text(name, style: textTheme.titleSmall, maxLines: 1, overflow: TextOverflow.ellipsis),
                   const SizedBox(height: 2),
                   Row(
                     children: [
                       Icon(Icons.location_on_outlined, size: 12, color: AppColors.textMuted),
                       const SizedBox(width: 2),
-                      Text(hotel.city(isArabic),
-                          style: textTheme.bodySmall?.copyWith(color: AppColors.textMuted)),
+                      Expanded(
+                        child: Text(hotelName,
+                            maxLines: 1, overflow: TextOverflow.ellipsis,
+                            style: textTheme.bodySmall?.copyWith(color: AppColors.textMuted)),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 6),
@@ -487,8 +434,8 @@ class _HotelCard extends StatelessWidget {
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.star_rounded, size: 12, color: AppColors.secondary),
-                            Text(' ${hotel.rating}',
+                            const Icon(Icons.people_outline_rounded, size: 12, color: AppColors.secondary),
+                            Text(' $capacity',
                                 style: const TextStyle(
                                     fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.secondary)),
                           ],
@@ -496,7 +443,7 @@ class _HotelCard extends StatelessWidget {
                       ),
                       const Spacer(),
                       Text(
-                        '${hotel.pricePerNight.toInt()} ${AppStrings.t(isArabic, "sar")}',
+                        '$price ${AppStrings.t(isArabic, "sar")}',
                         style: textTheme.titleSmall?.copyWith(color: AppColors.goldDark),
                       ),
                       Text(AppStrings.t(isArabic, 'per_night'),
