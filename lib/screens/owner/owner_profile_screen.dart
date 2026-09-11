@@ -19,6 +19,91 @@ import 'owner_staff_screen.dart';
 class OwnerProfileScreen extends ConsumerWidget {
   const OwnerProfileScreen({super.key});
 
+  Future<void> _openEditProfileSheet(BuildContext context, WidgetRef ref, bool isArabic, dynamic user) async {
+    final nameCtrl = TextEditingController(text: user?.fullName ?? '');
+    final phoneCtrl = TextEditingController(text: user?.phone ?? '');
+    final currentPwCtrl = TextEditingController();
+    final newPwCtrl = TextEditingController();
+    String? errorText;
+    bool saving = false;
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return Padding(
+          padding: EdgeInsets.only(
+            left: AppDimens.pagePadding,
+            right: AppDimens.pagePadding,
+            top: AppDimens.pagePadding,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + AppDimens.pagePadding,
+          ),
+          child: StatefulBuilder(
+            builder: (ctx, setSheetState) => SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(AppStrings.t(isArabic, 'edit_profile'), style: Theme.of(ctx).textTheme.titleMedium),
+                  const SizedBox(height: AppDimens.md),
+                  TextField(controller: nameCtrl, decoration: InputDecoration(labelText: AppStrings.t(isArabic, 'full_name'))),
+                  const SizedBox(height: AppDimens.md),
+                  TextField(controller: phoneCtrl, decoration: InputDecoration(labelText: AppStrings.t(isArabic, 'phone')), keyboardType: TextInputType.phone),
+                  const SizedBox(height: AppDimens.lg),
+                  Text(AppStrings.t(isArabic, 'change_password_optional'), style: Theme.of(ctx).textTheme.bodySmall?.copyWith(color: AppColors.textMuted)),
+                  const SizedBox(height: AppDimens.sm),
+                  TextField(controller: currentPwCtrl, obscureText: true, decoration: InputDecoration(labelText: AppStrings.t(isArabic, 'current_password'))),
+                  const SizedBox(height: AppDimens.md),
+                  TextField(controller: newPwCtrl, obscureText: true, decoration: InputDecoration(labelText: AppStrings.t(isArabic, 'new_password'))),
+                  if (errorText != null) ...[
+                    const SizedBox(height: AppDimens.sm),
+                    Text(errorText!, style: const TextStyle(color: AppColors.danger, fontSize: 12)),
+                  ],
+                  const SizedBox(height: AppDimens.lg),
+                  SizedBox(
+                    width: double.infinity,
+                    height: AppDimens.buttonHeight,
+                    child: ElevatedButton(
+                      onPressed: saving
+                          ? null
+                          : () async {
+                              if (nameCtrl.text.trim().isEmpty) {
+                                setSheetState(() => errorText = AppStrings.t(isArabic, 'required_field'));
+                                return;
+                              }
+                              setSheetState(() {
+                                saving = true;
+                                errorText = null;
+                              });
+                              try {
+                                await ref.read(sessionProvider.notifier).updateProfile(
+                                      fullName: nameCtrl.text.trim(),
+                                      phone: phoneCtrl.text.trim(),
+                                      currentPassword: newPwCtrl.text.trim().isNotEmpty ? currentPwCtrl.text.trim() : null,
+                                      newPassword: newPwCtrl.text.trim().isNotEmpty ? newPwCtrl.text.trim() : null,
+                                    );
+                                if (ctx.mounted) Navigator.of(ctx).pop();
+                              } catch (e) {
+                                setSheetState(() {
+                                  saving = false;
+                                  errorText = e.toString();
+                                });
+                              }
+                            },
+                      child: saving
+                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          : Text(AppStrings.t(isArabic, 'save')),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isArabic = ref.watch(localeProvider).languageCode == 'ar';
@@ -40,11 +125,11 @@ class OwnerProfileScreen extends ConsumerWidget {
               ),
               const SizedBox(height: AppDimens.md),
               Text(user?.fullName ?? '', style: textTheme.headlineSmall),
-              Text(AppStrings.t(isArabic, 'role_owner'),
+              Text(_roleLabel(isArabic, user?.role ?? 'owner'),
                   style: textTheme.bodyMedium?.copyWith(color: AppColors.goldDark)),
               const SizedBox(height: AppDimens.sm),
               OutlinedButton.icon(
-                onPressed: () {},
+                onPressed: () => _openEditProfileSheet(context, ref, isArabic, user),
                 icon: const Icon(Icons.edit_outlined, size: 16),
                 label: Text(AppStrings.t(isArabic, 'edit_profile')),
                 style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8)),
@@ -211,5 +296,17 @@ class _MenuSection extends StatelessWidget {
         }),
       ),
     );
+  }
+}
+String _roleLabel(bool isArabic, String role) {
+  switch (role) {
+    case 'unit_manager':
+      return isArabic ? 'مدير الوحدة' : 'Unit Manager';
+    case 'hotel_manager':
+      return isArabic ? 'إدارة الفندق' : 'Hotel Management';
+    case 'booking_agent':
+      return isArabic ? 'وكيل الحجوزات' : 'Booking Agent';
+    default:
+      return isArabic ? 'المالك' : 'Owner';
   }
 }

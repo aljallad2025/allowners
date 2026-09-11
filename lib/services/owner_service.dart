@@ -375,6 +375,7 @@ class OwnerService {
     String? coverImagePath,
     List<String>? galleryPaths,
     List<Map<String, dynamic>>? addons,
+    List<Map<String, String>>? availabilityPeriods,
   }) async {
     try {
       final formData = FormData.fromMap({
@@ -396,6 +397,10 @@ class OwnerService {
         if (galleryPaths != null)
           'gallery[]': [for (final p in galleryPaths) await MultipartFile.fromFile(p)],
         if (addons != null && addons.isNotEmpty) 'addons': jsonEncode(addons),
+        if (availabilityPeriods != null && availabilityPeriods.isNotEmpty)
+          'avail_from[]': [for (final p in availabilityPeriods) p['from']!],
+        if (availabilityPeriods != null && availabilityPeriods.isNotEmpty)
+          'avail_to[]': [for (final p in availabilityPeriods) p['to']!],
       });
       await _dio.post('/user/owner-units.php', data: formData);
     } on DioException catch (e) {

@@ -41,6 +41,7 @@ class _OwnerAddUnitScreenState extends ConsumerState<OwnerAddUnitScreen> {
   bool _saving = false;
   String? _errorText;
   final List<Map<String, dynamic>> _addons = [];
+  final List<Map<String, DateTime?>> _availabilityPeriods = [];
 
   static const _addonCategories = ['extra_bed', 'meal_plan', 'other'];
   static const _priceUnits = ['per_night', 'per_stay', 'per_person_night'];
@@ -112,6 +113,10 @@ class _OwnerAddUnitScreenState extends ConsumerState<OwnerAddUnitScreen> {
         coverImagePath: _coverImage?.path,
         galleryPaths: _galleryImages.map((f) => f.path).toList(),
         addons: _addons,
+        availabilityPeriods: _availabilityPeriods.map((p) => {
+              'from': _fmtDate(p['from'] as DateTime),
+              'to': _fmtDate(p['to'] as DateTime),
+            }).toList(),
       );
       if (mounted) Navigator.of(context).pop(true);
     } on ApiException catch (e) {
@@ -141,6 +146,25 @@ class _OwnerAddUnitScreenState extends ConsumerState<OwnerAddUnitScreen> {
       default:
         return isArabic ? '/ لليلة' : '/ night';
     }
+  }
+
+  Future<void> _addAvailabilityPeriod() async {
+    final now = DateTime.now();
+    final from = await showDatePicker(
+      context: context,
+      initialDate: now,
+      firstDate: now,
+      lastDate: DateTime(now.year + 3),
+    );
+    if (from == null || !mounted) return;
+    final to = await showDatePicker(
+      context: context,
+      initialDate: from.add(const Duration(days: 1)),
+      firstDate: from.add(const Duration(days: 1)),
+      lastDate: DateTime(now.year + 3),
+    );
+    if (to == null) return;
+    setState(() => _availabilityPeriods.add({'from': from, 'to': to}));
   }
 
   Future<void> _openAddAddonSheet(bool isArabic) async {
@@ -258,6 +282,8 @@ class _OwnerAddUnitScreenState extends ConsumerState<OwnerAddUnitScreen> {
   }
 
   InputDecoration _dec(String label) => InputDecoration(labelText: label);
+
+  String _fmtDate(DateTime d) => '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
   @override
   Widget build(BuildContext context) {
@@ -512,6 +538,47 @@ class _OwnerAddUnitScreenState extends ConsumerState<OwnerAddUnitScreen> {
               ],
 
               const SizedBox(height: AppDimens.lg),
+              const SizedBox(height: AppDimens.lg),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(AppStrings.t(isArabic, 'availability_periods'), style: Theme.of(context).textTheme.titleSmall),
+                  TextButton.icon(
+                    onPressed: _addAvailabilityPeriod,
+                    icon: const Icon(Icons.add, size: 18),
+                    label: Text(AppStrings.t(isArabic, 'add_period')),
+                  ),
+                ],
+              ),
+              if (_availabilityPeriods.isEmpty)
+                Text(AppStrings.t(isArabic, 'no_periods_yet'), style: const TextStyle(color: AppColors.textMuted, fontSize: 12))
+              else
+                ..._availabilityPeriods.asMap().entries.map((entry) {
+                  final i = entry.key;
+                  final period = entry.value;
+                  final from = period['from'] as DateTime;
+                  final to = period['to'] as DateTime;
+                  String fmt(DateTime d) => '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: AppDimens.sm),
+                    padding: const EdgeInsets.all(AppDimens.sm),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceMuted,
+                      borderRadius: BorderRadius.circular(AppDimens.radiusSm),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(child: Text('${fmt(from)}  →  ${fmt(to)}', style: const TextStyle(fontSize: 13))),
+                        IconButton(
+                          icon: const Icon(Icons.close, size: 18, color: AppColors.danger),
+                          onPressed: () => setState(() => _availabilityPeriods.removeAt(i)),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+
+              const SizedBox(height: AppDimens.lg),
               SizedBox(
                 width: double.infinity,
                 height: AppDimens.buttonHeight,
@@ -521,12 +588,6 @@ class _OwnerAddUnitScreenState extends ConsumerState<OwnerAddUnitScreen> {
                       ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                       : Text(AppStrings.t(isArabic, 'save')),
                 ),
-              ),
-              const SizedBox(height: AppDimens.md),
-              Text(
-                AppStrings.t(isArabic, 'add_unit_availability_web'),
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
               ),
             ],
           ),

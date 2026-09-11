@@ -76,6 +76,26 @@ class SessionNotifier extends StateNotifier<SessionState> {
   void clearError() {
     state = state.copyWith(error: null);
   }
+
+  /// يحدّث بيانات المستخدم محلياً بعد نجاح تعديل الملف الشخصي (بدون تسجيل دخول من جديد)
+  void updateLocalUser(AppUser user) {
+    state = state.copyWith(user: user);
+  }
+
+  Future<void> updateProfile({
+    required String fullName,
+    String? phone,
+    String? currentPassword,
+    String? newPassword,
+  }) async {
+    final user = await _authService.updateProfile(
+      fullName: fullName,
+      phone: phone,
+      currentPassword: currentPassword,
+      newPassword: newPassword,
+    );
+    updateLocalUser(user);
+  }
 }
 
 final sessionProvider = StateNotifierProvider<SessionNotifier, SessionState>(

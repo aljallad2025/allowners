@@ -40,6 +40,28 @@ class AuthService {
     }
   }
 
+  Future<AppUser> updateProfile({
+    required String fullName,
+    String? phone,
+    String? currentPassword,
+    String? newPassword,
+  }) async {
+    try {
+      final res = await _dio.post('/user/update-profile.php', data: {
+        'full_name': fullName,
+        'phone': phone ?? '',
+        if (currentPassword != null) 'current_password': currentPassword,
+        if (newPassword != null) 'new_password': newPassword,
+      });
+      final user = AppUser.fromJson(res.data['user']);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('user_json', jsonEncode(user.toJson()));
+      return user;
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
   Future<void> logout() async {
     try {
       await _dio.post('/auth/logout.php');
