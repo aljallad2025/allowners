@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../../data/partner_hotels.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_dimens.dart';
 import '../../utils/app_strings.dart';
@@ -23,6 +24,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   bool _isLoading = true;
   String? _error;
   String _sort = 'newest';
+  String _hotelsCity = 'makkah';
 
   @override
   void initState() {
@@ -51,6 +53,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
   }
 
+  void _openSearch({String? query}) {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => SearchScreen(initialQuery: query)),
+    );
+  }
+
+  void _onHotelTap(PartnerHotel hotel, bool isArabic) {
+    if (hotel.available) {
+      _openSearch(query: hotel.searchQuery);
+      return;
+    }
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text('${hotel.name(isArabic)} — ${AppStrings.t(isArabic, 'hotel_soon_msg')}'),
+        ),
+      );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isArabic = ref.watch(localeProvider).languageCode == 'ar';
@@ -58,37 +80,40 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final userName = ref.watch(sessionProvider).user?.fullName.split(' ').first;
     final units = _units;
 
+    // 'label' = اسم التصنيف المعروض، 'query' = كلمة البحث المرسلة للسيرفر (بقيت كما كانت قبل التعديل)
     final categories = [
-      {'icon': Icons.king_bed_outlined, 'key': 'hotels', 'color': AppColors.ink},
-      {'icon': Icons.apartment_rounded, 'key': 'apartments', 'color': AppColors.secondary},
-      {'icon': Icons.beach_access_rounded, 'key': 'resorts', 'color': AppColors.goldDark},
-      {'icon': Icons.cabin_outlined, 'key': 'chalets', 'color': AppColors.success},
+      {'icon': Icons.king_bed_outlined, 'label': 'cat_hotel_units', 'query': 'hotels', 'color': AppColors.ink},
+      {'icon': Icons.apartment_rounded, 'label': 'cat_furnished', 'query': 'apartments', 'color': AppColors.secondary},
+      {'icon': Icons.beach_access_rounded, 'label': 'resorts', 'query': 'resorts', 'color': AppColors.goldDark},
+      {'icon': Icons.cabin_outlined, 'label': 'chalets', 'query': 'chalets', 'color': AppColors.success},
+      {'icon': Icons.home_work_outlined, 'label': 'cat_properties', 'query': 'cat_properties', 'color': AppColors.inkLight},
     ];
+
+    final hotelsInCity = kPartnerHotels.where((h) => h.cityKey == _hotelsCity).toList();
+
+    final greeting = userName != null
+        ? '${AppStrings.t(isArabic, 'greet_hello')}${isArabic ? '،' : ','} $userName 👋'
+        : '${AppStrings.t(isArabic, 'greet_welcome')} 👋';
 
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
-            // ===== Header =====
+            // ===== Header: ترحيب + شعار AO (مكبّر ~18%) =====
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(
                     AppDimens.pagePadding, AppDimens.md, AppDimens.pagePadding, 0),
                 child: Row(
                   children: [
-                    Image.asset('assets/images/logo.png', width: 44),
+                    Image.asset('assets/images/logo.png', width: 52),
                     const SizedBox(width: AppDimens.sm),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            userName != null
-                                ? '${AppStrings.t(isArabic, 'hello')}, $userName 👋'
-                                : AppStrings.t(isArabic, 'hello'),
-                            style: textTheme.titleMedium,
-                          ),
+                          Text(greeting, style: textTheme.titleMedium),
                           Text(
                             AppStrings.t(isArabic, 'where_to'),
                             style: textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
@@ -109,33 +134,32 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
             ),
 
-            // ===== Search bar =====
+            // ===== Search bar (العنصر الرئيسي في الصفحة) =====
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.all(AppDimens.pagePadding),
+                padding: const EdgeInsets.fromLTRB(
+                    AppDimens.pagePadding, AppDimens.md, AppDimens.pagePadding, AppDimens.md),
                 child: InkWell(
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const SearchScreen()),
-                    );
-                  },
+                  onTap: () => _openSearch(),
                   borderRadius: BorderRadius.circular(AppDimens.radiusLg),
                   child: Container(
-                    padding: const EdgeInsets.all(AppDimens.md),
+                    padding: const EdgeInsets.symmetric(horizontal: AppDimens.md, vertical: 18),
                     decoration: BoxDecoration(
                       color: AppColors.surface,
                       borderRadius: BorderRadius.circular(AppDimens.radiusLg),
-                      border: Border.all(color: AppColors.cardBorder),
-                      boxShadow: AppColors.cardShadow,
+                      border: Border.all(color: AppColors.gold.withOpacity(0.7), width: 1.4),
+                      boxShadow: AppColors.elevatedShadow,
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.search_rounded, color: AppColors.textMuted),
+                        const Icon(Icons.search_rounded, color: AppColors.goldDark, size: 26),
                         const SizedBox(width: AppDimens.sm),
                         Expanded(
                           child: Text(
                             AppStrings.t(isArabic, 'search_destination'),
-                            style: textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
+                            style: textTheme.bodyLarge?.copyWith(color: AppColors.textMuted),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         Container(
@@ -153,10 +177,46 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
             ),
 
-            // ===== Categories =====
+            // ===== الوجهات الرئيسية =====
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppDimens.pagePadding),
+                child: Text(AppStrings.t(isArabic, 'main_destinations'), style: textTheme.titleMedium),
+              ),
+            ),
+            const SliverToBoxAdapter(child: SizedBox(height: AppDimens.sm)),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppDimens.pagePadding),
+                child: Row(
+                  children: [
+                    for (int i = 0; i < kHomeCities.length; i++) ...[
+                      if (i != 0) const SizedBox(width: AppDimens.sm),
+                      Expanded(
+                        child: _CityTile(
+                          emoji: kHomeCities[i].emoji,
+                          label: AppStrings.t(isArabic, kHomeCities[i].nameKey),
+                          onTap: () => _openSearch(query: kHomeCities[i].query(isArabic)),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+            const SliverToBoxAdapter(child: SizedBox(height: AppDimens.lg)),
+
+            // ===== اكتشف حسب النوع =====
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppDimens.pagePadding),
+                child: Text(AppStrings.t(isArabic, 'discover_by_type'), style: textTheme.titleMedium),
+              ),
+            ),
+            const SliverToBoxAdapter(child: SizedBox(height: AppDimens.sm)),
             SliverToBoxAdapter(
               child: SizedBox(
-                height: 96,
+                height: 104,
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: AppDimens.pagePadding),
@@ -164,35 +224,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   itemBuilder: (context, index) {
                     final cat = categories[index];
                     return Padding(
-                      padding: const EdgeInsets.only(left: AppDimens.md),
+                      padding: const EdgeInsetsDirectional.only(end: AppDimens.sm),
                       child: InkWell(
                         borderRadius: BorderRadius.circular(AppDimens.radiusMd),
-                        onTap: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => SearchScreen(
-                                initialQuery: AppStrings.t(isArabic, cat['key'] as String),
+                        onTap: () => _openSearch(
+                          query: AppStrings.t(isArabic, cat['query'] as String),
+                        ),
+                        child: SizedBox(
+                          width: 82,
+                          child: Column(
+                            children: [
+                              Container(
+                                width: 60,
+                                height: 60,
+                                decoration: BoxDecoration(
+                                  color: (cat['color'] as Color).withOpacity(0.08),
+                                  borderRadius: BorderRadius.circular(AppDimens.radiusMd),
+                                ),
+                                child: Icon(cat['icon'] as IconData, color: cat['color'] as Color),
                               ),
-                            ),
-                          );
-                        },
-                        child: Column(
-                          children: [
-                            Container(
-                              width: 60,
-                              height: 60,
-                              decoration: BoxDecoration(
-                                color: (cat['color'] as Color).withOpacity(0.08),
-                                borderRadius: BorderRadius.circular(AppDimens.radiusMd),
+                              const SizedBox(height: 6),
+                              Text(
+                                AppStrings.t(isArabic, cat['label'] as String),
+                                style: textTheme.labelSmall,
+                                textAlign: TextAlign.center,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                              child: Icon(cat['icon'] as IconData, color: cat['color'] as Color),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              AppStrings.t(isArabic, cat['key'] as String),
-                              style: textTheme.labelSmall,
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     );
@@ -200,20 +260,104 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
               ),
             ),
-            const SliverToBoxAdapter(child: SizedBox(height: AppDimens.md)),
+            const SliverToBoxAdapter(child: SizedBox(height: AppDimens.sm)),
 
-            // ===== أحدث الأجنحة =====
+            // ===== فنادق بوحدات ملاك (قسم بارز) =====
+            SliverToBoxAdapter(
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: AppDimens.pagePadding),
+                padding: const EdgeInsets.symmetric(vertical: AppDimens.md),
+                decoration: BoxDecoration(
+                  gradient: AppColors.heroDarkGradient,
+                  borderRadius: BorderRadius.circular(AppDimens.radiusXl),
+                  boxShadow: AppColors.elevatedShadow,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: AppDimens.md),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.verified_rounded, color: AppColors.gold, size: 22),
+                              const SizedBox(width: AppDimens.sm),
+                              Expanded(
+                                child: Text(
+                                  AppStrings.t(isArabic, 'owner_hotels'),
+                                  style: textTheme.headlineSmall?.copyWith(color: Colors.white),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            AppStrings.t(isArabic, 'owner_hotels_desc'),
+                            style: textTheme.bodySmall?.copyWith(color: Colors.white70),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: AppDimens.md),
+                    SizedBox(
+                      height: 38,
+                      child: ListView(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: AppDimens.md),
+                        children: [
+                          for (final city in kHomeCities)
+                            Padding(
+                              padding: const EdgeInsetsDirectional.only(end: AppDimens.sm),
+                              child: _DarkChip(
+                                label: AppStrings.t(isArabic, city.nameKey),
+                                selected: _hotelsCity == city.key,
+                                onTap: () => setState(() => _hotelsCity = city.key),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: AppDimens.md),
+                    SizedBox(
+                      height: 138,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: AppDimens.md),
+                        itemCount: hotelsInCity.length,
+                        itemBuilder: (context, index) {
+                          final hotel = hotelsInCity[index];
+                          return Padding(
+                            padding: const EdgeInsetsDirectional.only(end: AppDimens.sm),
+                            child: _PartnerHotelCard(
+                              name: hotel.name(isArabic),
+                              cityLabel: AppStrings.t(isArabic, 'city_${hotel.cityKey}'),
+                              available: hotel.available,
+                              availableLabel: AppStrings.t(isArabic, 'hotel_available'),
+                              soonLabel: AppStrings.t(isArabic, 'hotel_soon'),
+                              onTap: () => _onHotelTap(hotel, isArabic),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SliverToBoxAdapter(child: SizedBox(height: AppDimens.lg)),
+
+            // ===== أحدث الوحدات =====
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: AppDimens.pagePadding),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(AppStrings.t(isArabic, 'newest_suites'), style: textTheme.headlineSmall),
+                    Text(AppStrings.t(isArabic, 'newest_units'), style: textTheme.headlineSmall),
                     TextButton(
-                      onPressed: () => Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const SearchScreen()),
-                      ),
+                      onPressed: () => _openSearch(),
                       child: Text(AppStrings.t(isArabic, 'see_all')),
                     ),
                   ],
@@ -256,9 +400,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
             ),
             const SliverToBoxAdapter(child: SizedBox(height: AppDimens.sm)),
+            // بطاقات الوحدات مباشرة تحت الفلاتر — بدون مساحة بيضاء زائدة
             SliverToBoxAdapter(
               child: SizedBox(
-                height: 260,
+                height: 240,
                 child: _isLoading
                     ? const Center(
                         child: SizedBox(
@@ -295,7 +440,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 itemBuilder: (context, index) {
                                   final unit = units[index];
                                   return Padding(
-                                    padding: const EdgeInsets.only(left: AppDimens.md),
+                                    padding: const EdgeInsetsDirectional.only(end: AppDimens.md),
                                     child: _UnitCard(
                                       unit: unit,
                                       isArabic: isArabic,
@@ -312,7 +457,158 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               ),
               ),
             ),
-            const SliverToBoxAdapter(child: SizedBox(height: AppDimens.xxl)),
+            const SliverToBoxAdapter(child: SizedBox(height: AppDimens.lg)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CityTile extends StatelessWidget {
+  final String emoji;
+  final String label;
+  final VoidCallback onTap;
+  const _CityTile({required this.emoji, required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppDimens.radiusMd),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(AppDimens.radiusMd),
+          border: Border.all(color: AppColors.cardBorder),
+          boxShadow: AppColors.cardShadow,
+        ),
+        child: Column(
+          children: [
+            Text(emoji, style: const TextStyle(fontSize: 26)),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: Theme.of(context).textTheme.labelMedium,
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DarkChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  const _DarkChip({required this.label, required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppDimens.radiusFull),
+      child: Container(
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.gold : Colors.white.withOpacity(0.10),
+          borderRadius: BorderRadius.circular(AppDimens.radiusFull),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+            color: selected ? AppColors.ink : Colors.white,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PartnerHotelCard extends StatelessWidget {
+  final String name;
+  final String cityLabel;
+  final bool available;
+  final String availableLabel;
+  final String soonLabel;
+  final VoidCallback onTap;
+
+  const _PartnerHotelCard({
+    required this.name,
+    required this.cityLabel,
+    required this.available,
+    required this.availableLabel,
+    required this.soonLabel,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final badgeColor = available ? AppColors.success : AppColors.goldDark;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+      child: Container(
+        width: 200,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: AppColors.gold.withOpacity(0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.apartment_rounded, size: 18, color: AppColors.goldDark),
+                ),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: badgeColor.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(AppDimens.radiusFull),
+                  ),
+                  child: Text(
+                    available ? availableLabel : soonLabel,
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: badgeColor),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: Text(
+                name,
+                style: textTheme.titleSmall,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            Row(
+              children: [
+                const Icon(Icons.location_on_outlined, size: 13, color: AppColors.textMuted),
+                const SizedBox(width: 2),
+                Text(cityLabel, style: textTheme.bodySmall?.copyWith(color: AppColors.textMuted)),
+              ],
+            ),
           ],
         ),
       ),

@@ -4,6 +4,8 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_dimens.dart';
 import '../../utils/app_strings.dart';
 import '../../utils/locale_provider.dart';
+import '../../utils/tr.dart';
+import '../bookings/edit_booking_dialog.dart';
 import '../../services/owner_service.dart';
 import '../../services/api_client.dart';
 
@@ -51,6 +53,54 @@ class _OwnerBookingsScreenState extends ConsumerState<OwnerBookingsScreen> {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
     } finally {
       if (mounted) setState(() => _cancellingId = null);
+    }
+  }
+
+  void _snack(String msg) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+
+  /// تأكيد الحجز — يُرسل تلقائياً إيميل + إشعار للفندق والعميل (المالك والفندق والعميل مرتبطون)
+  Future<void> _confirmBooking(bool isArabic, int bookingId) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(tr(isArabic, 'تأكيد الحجز', 'Confirm booking')),
+        content: Text(tr(isArabic, 'سيتم تأكيد الحجز وإرسال إيميل تلقائي للفندق والعميل.',
+            'The booking will be confirmed and an email will be sent automatically to the hotel and the guest.')),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(AppStrings.t(isArabic, 'cancel'))),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(tr(isArabic, 'تأكيد', 'Confirm'))),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    setState(() => _cancellingId = bookingId);
+    try {
+      await _service.confirmBooking(bookingId);
+      if (mounted) _snack(tr(isArabic, 'تم تأكيد الحجز وإبلاغ الفندق والعميل', 'Booking confirmed — hotel and guest notified'));
+      _reload();
+    } on ApiException catch (e) {
+      if (mounted) _snack(e.message);
+    } finally {
+      if (mounted) setState(() => _cancellingId = null);
+    }
+  }
+
+  Future<void> _editBooking(bool isArabic, Map<String, dynamic> b) async {
+    final edit = await showEditBookingDialog(context, b, isArabic, editGuestInfo: true);
+    if (edit == null) return;
+    try {
+      await _service.updateBooking(
+        bookingId: (b['id'] as num).toInt(),
+        checkIn: edit.checkIn,
+        checkOut: edit.checkOut,
+        guests: edit.guests,
+        guestName: edit.guestName,
+        guestPhone: edit.guestPhone,
+      );
+      if (mounted) _snack(tr(isArabic, 'تم تعديل الحجز', 'Booking updated'));
+      _reload();
+    } on ApiException catch (e) {
+      if (mounted) _snack(e.message);
     }
   }
 
@@ -123,7 +173,7 @@ class _OwnerBookingsScreenState extends ConsumerState<OwnerBookingsScreen> {
                   final b = bookings[index];
                   final status = (b['status'] ?? 'pending').toString();
                   final guestName = (b['guest_name'] ?? AppStrings.t(isArabic, 'guest')).toString();
-                  final unitName = isArabic ? (b['unit_name'] ?? '') : (b['unit_name_en'] ?? b['unit_name'] ?? '');
+                  final unitName = isArabic ? (b['unit_name_ar'] ?? b['unit_name'] ?? '') : (b['unit_name_en'] ?? b['unit_name_ar'] ?? b['unit_name'] ?? '');
                   final total = (b['total'] is num) ? (b['total'] as num).toStringAsFixed(0) : '0';
 
                   return Container(
@@ -154,10 +204,13 @@ class _OwnerBookingsScreenState extends ConsumerState<OwnerBookingsScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text('${b['hotel_name'] ?? ''} — $unitName', style: textTheme.bodySmall?.copyWith(color: AppColors.textMuted)),
+                        if (b['payment_method'] == 'owner_transfer')
+                          Text(tr(isArabic, 'الدفع: تحويل مباشر لحسابك', 'Payment: direct transfer to your account'),
+                              style: textTheme.bodySmall?.copyWith(color: AppColors.goldDark)),
                         if ((b['guest_phone'] ?? '').toString().isNotEmpty)
                           Text('📞 ${b['guest_phone']}', style: textTheme.bodySmall?.copyWith(color: AppColors.textMuted)),
                         if ((b['guest_id_number'] ?? '').toString().isNotEmpty)
-                          Text('🪪 ${b['guest_id_number']}', style: textTheme.bodySmall?.copyWith(color: AppColors.textMuted)),
+                          Text('ID: ${b['guest_id_number']}', style: textTheme.bodySmall?.copyWith(color: AppColors.textMuted)),
                         const Divider(height: AppDimens.lg),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -174,15 +227,38 @@ class _OwnerBookingsScreenState extends ConsumerState<OwnerBookingsScreen> {
                             Text('$total ${AppStrings.t(isArabic, 'sar')}', style: textTheme.titleSmall?.copyWith(color: AppColors.goldDark)),
                           ],
                         ),
-                        if (b['can_cancel'] == true) ...[
+                        if (b['can_confirm'] == true || b['can_edit'] == true || b['can_cancel'] == true) ...[
                           const SizedBox(height: AppDimens.sm),
-                          SizedBox(
-                            width: double.infinity,
-                            child: OutlinedButton(
-                              style: OutlinedButton.styleFrom(foregroundColor: AppColors.danger, side: const BorderSide(color: AppColors.danger)),
-                              onPressed: _cancellingId == b['id'] ? null : () => _cancelBooking(isArabic, b['id'] as int),
-                              child: Text(AppStrings.t(isArabic, 'cancel_booking')),
+                          if (b['can_confirm'] == true)
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                onPressed: _cancellingId == b['id'] ? null : () => _confirmBooking(isArabic, (b['id'] as num).toInt()),
+                                icon: const Icon(Icons.check_circle_outline_rounded, size: 18),
+                                label: Text(tr(isArabic, 'تأكيد الحجز', 'Confirm booking')),
+                              ),
                             ),
+                          if (b['can_confirm'] == true) const SizedBox(height: AppDimens.sm),
+                          Row(
+                            children: [
+                              if (b['can_edit'] == true)
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    onPressed: _cancellingId == b['id'] ? null : () => _editBooking(isArabic, b),
+                                    icon: const Icon(Icons.edit_calendar_outlined, size: 18),
+                                    label: Text(tr(isArabic, 'تعديل الحجز', 'Edit booking')),
+                                  ),
+                                ),
+                              if (b['can_edit'] == true && b['can_cancel'] == true) const SizedBox(width: AppDimens.sm),
+                              if (b['can_cancel'] == true)
+                                Expanded(
+                                  child: OutlinedButton(
+                                    style: OutlinedButton.styleFrom(foregroundColor: AppColors.danger, side: const BorderSide(color: AppColors.danger)),
+                                    onPressed: _cancellingId == b['id'] ? null : () => _cancelBooking(isArabic, (b['id'] as num).toInt()),
+                                    child: Text(AppStrings.t(isArabic, 'cancel_booking')),
+                                  ),
+                                ),
+                            ],
                           ),
                         ],
                       ],

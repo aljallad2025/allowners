@@ -53,6 +53,114 @@ class OwnerService {
     }
   }
 
+  /// تأكيد الحجز (المالك) — السيرفر يبلّغ الفندق والعميل تلقائياً بالإيميل
+  Future<void> confirmBooking(int bookingId) async {
+    try {
+      await _dio.post('/user/owner-bookings.php', data: {'booking_id': bookingId, 'action': 'confirm'});
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  /// تعديل حجز (تواريخ / ضيوف / بيانات الضيف) مع إعادة حساب السعر
+  Future<void> updateBooking({
+    required int bookingId,
+    DateTime? checkIn,
+    DateTime? checkOut,
+    int? guests,
+    String? guestName,
+    String? guestPhone,
+  }) async {
+    try {
+      await _dio.post('/user/owner-bookings.php', data: {
+        'booking_id': bookingId,
+        'action': 'update',
+        if (checkIn != null) 'check_in': _fmtDate(checkIn),
+        if (checkOut != null) 'check_out': _fmtDate(checkOut),
+        if (guests != null) 'guests': guests,
+        if (guestName != null) 'guest_name': guestName,
+        if (guestPhone != null) 'guest_phone': guestPhone,
+      });
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  String _fmtDate(DateTime d) =>
+      '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+  // ===== بيانات الحساب البنكي للتحويل المباشر =====
+
+  Future<Map<String, dynamic>> getBank() async {
+    try {
+      final res = await _dio.get('/user/owner-bank.php');
+      return (res.data['bank'] as Map).cast<String, dynamic>();
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  Future<void> saveBank({required String bankName, required String accountName, required String iban}) async {
+    try {
+      await _dio.post('/user/owner-bank.php', data: {
+        'bank_name': bankName,
+        'bank_account_name': accountName,
+        'bank_iban': iban,
+      });
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  // ===== طلبات المالك للفندق: نظافة / سرير إضافي =====
+
+  Future<List<Map<String, dynamic>>> getHotelRequests(String type) async {
+    try {
+      final res = await _dio.get('/user/owner-requests.php', queryParameters: {'type': type});
+      return (res.data['requests'] as List).cast<Map<String, dynamic>>();
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  Future<void> createHotelRequest({
+    required String type, // cleaning | extra_bed
+    required int hotelId,
+    required int unitId,
+    String? description,
+  }) async {
+    try {
+      await _dio.post('/user/owner-requests.php', data: {
+        'type': type,
+        'hotel_id': hotelId,
+        'unit_id': unitId,
+        if (description != null && description.isNotEmpty) 'description': description,
+      });
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  Future<void> cancelHotelRequest(int id) async {
+    try {
+      await _dio.post('/user/owner-requests.php', data: {'action': 'cancel', 'id': id});
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  // ===== أسعار خدمات الفندق (اطلاع فقط) =====
+
+  Future<List<Map<String, dynamic>>> getHotelPrices({String? serviceType}) async {
+    try {
+      final res = await _dio.get('/user/hotel-prices.php',
+          queryParameters: {if (serviceType != null) 'service_type': serviceType});
+      return (res.data['prices'] as List).cast<Map<String, dynamic>>();
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
   Future<Map<String, dynamic>> getRevenue() async {
     try {
       final res = await _dio.get('/user/owner-revenue.php');

@@ -29,9 +29,13 @@ class _OwnerMaintenanceScreenState extends ConsumerState<OwnerMaintenanceScreen>
   Color _statusColor(String status) {
     switch (status) {
       case 'closed':
+      case 'done':
         return AppColors.success;
       case 'in_progress':
+      case 'confirmed':
         return AppColors.secondary;
+      case 'rejected':
+        return AppColors.danger;
       default:
         return AppColors.warning;
     }
@@ -220,6 +224,22 @@ class _OwnerMaintenanceScreenState extends ConsumerState<OwnerMaintenanceScreen>
                         if ((r['description'] ?? '').toString().isNotEmpty) ...[
                           const SizedBox(height: AppDimens.sm),
                           Text(r['description'].toString(), style: textTheme.bodyMedium),
+                        ],
+                        // ردّ الفندق: تأكيد الطلب + الوصف + السعر + وصف التنفيذ
+                        if ((r['hotel_note'] ?? '').toString().isNotEmpty) ...[
+                          const SizedBox(height: 6),
+                          Text('${isArabic ? 'ملاحظة الفندق' : 'Hotel note'}: ${r['hotel_note']}',
+                              style: textTheme.bodySmall?.copyWith(color: AppColors.textSecondary)),
+                        ],
+                        if (r['cost'] != null && double.tryParse(r['cost'].toString()) != null) ...[
+                          const SizedBox(height: 4),
+                          Text('${isArabic ? 'السعر' : 'Price'}: ${double.parse(r['cost'].toString()).toStringAsFixed(0)} ${isArabic ? 'ريال' : 'SAR'}',
+                              style: textTheme.bodySmall?.copyWith(color: AppColors.goldDark, fontWeight: FontWeight.w600)),
+                        ],
+                        if ((r['done_note'] ?? '').toString().isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text('${isArabic ? 'تمت الصيانة' : 'Completed'}: ${r['done_note']}',
+                              style: textTheme.bodySmall?.copyWith(color: AppColors.success)),
                         ],
                       ],
                     ),

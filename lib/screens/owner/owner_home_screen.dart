@@ -15,6 +15,9 @@ import 'owner_community_screen.dart';
 import 'owner_marketplace_screen.dart';
 import 'owner_messages_screen.dart';
 import 'owner_meal_requests_screen.dart';
+import 'owner_hotel_requests_screen.dart';
+import 'owner_hotel_prices_screen.dart';
+import '../../utils/tr.dart';
 
 class OwnerHomeScreen extends ConsumerStatefulWidget {
   const OwnerHomeScreen({super.key});
@@ -56,6 +59,21 @@ class _OwnerHomeScreenState extends ConsumerState<OwnerHomeScreen> {
         icon: Icons.build_outlined,
         title: AppStrings.t(isArabic, 'maintenance_requests'),
         onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const OwnerMaintenanceScreen())),
+      ),
+      (
+        icon: Icons.cleaning_services_outlined,
+        title: tr(isArabic, 'طلب النظافة', 'Cleaning request'),
+        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const OwnerHotelRequestsScreen(type: 'cleaning'))),
+      ),
+      (
+        icon: Icons.bed_outlined,
+        title: tr(isArabic, 'طلب سرير إضافي', 'Extra bed request'),
+        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const OwnerHotelRequestsScreen(type: 'extra_bed'))),
+      ),
+      (
+        icon: Icons.sell_outlined,
+        title: tr(isArabic, 'أسعار خدمات الفندق', 'Hotel service prices'),
+        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const OwnerHotelPricesScreen())),
       ),
       (
         icon: Icons.restaurant_outlined,
@@ -103,6 +121,9 @@ class _OwnerHomeScreenState extends ConsumerState<OwnerHomeScreen> {
                 Text(AppStrings.t(isArabic, 'hello'),
                     style: textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary)),
                 Text(user?.fullName ?? '', style: textTheme.headlineMedium),
+                const SizedBox(height: 4),
+                Text(AppStrings.t(isArabic, 'owner_tagline'),
+                    style: textTheme.bodySmall?.copyWith(color: AppColors.textSecondary)),
                 const SizedBox(height: AppDimens.lg),
 
                 FutureBuilder<Map<String, dynamic>>(

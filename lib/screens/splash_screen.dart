@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../theme/app_colors.dart';
+import '../utils/locale_provider.dart';
 import 'onboarding/onboarding_screen.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
@@ -56,8 +56,15 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
+    final isArabic = ref.watch(localeProvider).languageCode == 'ar';
+    // خلفية مطابقة لخلفية ملف الشعار الرسمي (عربي/إنجليزي) لدمج الصورة بدون حواف ظاهرة
+    final background = isArabic ? const Color(0xFF01173A) : const Color(0xFF00112B);
+    final logoAsset = isArabic
+        ? 'assets/images/official_logo_ar.png'
+        : 'assets/images/official_logo_en.png';
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: background,
       body: SafeArea(
         child: Center(
           child: AnimatedBuilder(
@@ -68,29 +75,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                 child: Transform.scale(scale: _logoScale.value, child: child),
               );
             },
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Image.asset('assets/images/logo.png', width: 230),
-                const SizedBox(height: 16),
-                ShaderMask(
-                  shaderCallback: (bounds) => AppColors.goldGradient.createShader(bounds),
-                  child: const Text(
-                    'ALL OWNERS',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                      letterSpacing: 3,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'فندقك، أينما كنت',
-                  style: TextStyle(fontSize: 13, color: AppColors.textMuted),
-                ),
-              ],
+            child: Image.asset(
+              logoAsset,
+              width: 300,
+              filterQuality: FilterQuality.high,
             ),
           ),
         ),

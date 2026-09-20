@@ -8,6 +8,10 @@ import '../../utils/session_provider.dart';
 import '../auth/login_screen.dart';
 import '../home/main_navigation_screen.dart';
 import '../services/hotel_services_screen.dart';
+import '../../widgets/avatar_picker.dart';
+import '../owner/owner_commission_screen.dart';
+import 'about_screen.dart';
+import 'help_support_screen.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -27,11 +31,14 @@ class ProfileScreen extends ConsumerWidget {
           child: Column(
             children: [
               const SizedBox(height: AppDimens.md),
-              CircleAvatar(
-                radius: 44,
-                backgroundColor: AppColors.surfaceMuted,
-                child: const Icon(Icons.person_rounded, color: AppColors.textMuted, size: 46),
-              ),
+              if (user != null)
+                const AvatarPicker(radius: 44)
+              else
+                CircleAvatar(
+                  radius: 44,
+                  backgroundColor: AppColors.surfaceMuted,
+                  child: const Icon(Icons.person_rounded, color: AppColors.textMuted, size: 46),
+                ),
               const SizedBox(height: AppDimens.md),
               if (user != null) ...[
                 Text(user.fullName, style: textTheme.headlineSmall),
@@ -59,6 +66,14 @@ class ProfileScreen extends ConsumerWidget {
                     MaterialPageRoute(builder: (_) => const HotelServicesScreen()),
                   ),
                 ),
+                if (user?.isBookingAgent ?? false)
+                  _MenuItem(
+                    icon: Icons.paid_outlined,
+                    label: AppStrings.t(isArabic, 'my_commission'),
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const OwnerCommissionScreen()),
+                    ),
+                  ),
                 _MenuItem(icon: Icons.notifications_outlined, label: AppStrings.t(isArabic, 'notifications'), onTap: () {}),
                 _MenuItem(
                   icon: Icons.language_rounded,
@@ -71,8 +86,20 @@ class ProfileScreen extends ConsumerWidget {
               const SizedBox(height: AppDimens.md),
 
               _MenuSection(items: [
-                _MenuItem(icon: Icons.help_outline_rounded, label: AppStrings.t(isArabic, 'help_support'), onTap: () {}),
-                _MenuItem(icon: Icons.info_outline_rounded, label: AppStrings.t(isArabic, 'about_us'), onTap: () {}),
+                _MenuItem(
+                  icon: Icons.help_outline_rounded,
+                  label: AppStrings.t(isArabic, 'help_support'),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const HelpSupportScreen()),
+                  ),
+                ),
+                _MenuItem(
+                  icon: Icons.info_outline_rounded,
+                  label: AppStrings.t(isArabic, 'about_us'),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const AboutScreen()),
+                  ),
+                ),
               ]),
               const SizedBox(height: AppDimens.md),
 

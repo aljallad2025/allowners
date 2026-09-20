@@ -5,8 +5,7 @@ import '../../theme/app_dimens.dart';
 import '../../utils/app_strings.dart';
 import '../../utils/locale_provider.dart';
 import '../../utils/session_provider.dart';
-import '../home/main_navigation_screen.dart';
-import '../owner/owner_navigation_screen.dart';
+import '../home/role_home.dart';
 
 enum _SignupRole { guest, owner }
 
@@ -44,9 +43,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       final user = ref.read(sessionProvider).user!;
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(
-          builder: (_) => user.isOwner
-              ? const OwnerNavigationScreen()
-              : const MainNavigationScreen(),
+          builder: (_) => homeForUser(user),
         ),
         (route) => false,
       );

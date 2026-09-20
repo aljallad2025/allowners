@@ -15,6 +15,11 @@ import 'owner_community_screen.dart';
 import 'owner_marketplace_screen.dart';
 import 'owner_messages_screen.dart';
 import 'owner_staff_screen.dart';
+import '../profile/help_support_screen.dart';
+import '../../widgets/avatar_picker.dart';
+import '../../utils/tr.dart';
+import 'owner_bank_screen.dart';
+import 'owner_hotel_prices_screen.dart';
 
 class OwnerProfileScreen extends ConsumerWidget {
   const OwnerProfileScreen({super.key});
@@ -118,11 +123,7 @@ class OwnerProfileScreen extends ConsumerWidget {
           child: Column(
             children: [
               const SizedBox(height: AppDimens.md),
-              CircleAvatar(
-                radius: 44,
-                backgroundColor: AppColors.surfaceMuted,
-                child: const Icon(Icons.person_rounded, color: AppColors.textMuted, size: 46),
-              ),
+              const AvatarPicker(radius: 44),
               const SizedBox(height: AppDimens.md),
               Text(user?.fullName ?? '', style: textTheme.headlineSmall),
               Text(_roleLabel(isArabic, user?.role ?? 'owner'),
@@ -162,6 +163,17 @@ class OwnerProfileScreen extends ConsumerWidget {
                   label: AppStrings.t(isArabic, 'voting_decisions'),
                   onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const OwnerDecisionsScreen())),
                 ),
+                _MenuItem(
+                  icon: Icons.sell_outlined,
+                  label: tr(isArabic, 'أسعار خدمات الفندق', 'Hotel service prices'),
+                  onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const OwnerHotelPricesScreen())),
+                ),
+                if (user?.role == 'owner')
+                  _MenuItem(
+                    icon: Icons.account_balance_outlined,
+                    label: tr(isArabic, 'حساب التحويل المباشر', 'Direct transfer account'),
+                    onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const OwnerBankScreen())),
+                  ),
                 if (user?.role == 'owner')
                   _MenuItem(
                     icon: Icons.badge_outlined,
@@ -191,7 +203,11 @@ class OwnerProfileScreen extends ConsumerWidget {
               const SizedBox(height: AppDimens.md),
 
               _MenuSection(items: [
-                _MenuItem(icon: Icons.help_outline_rounded, label: AppStrings.t(isArabic, 'help_support'), onTap: () {}),
+                _MenuItem(
+                  icon: Icons.help_outline_rounded,
+                  label: AppStrings.t(isArabic, 'help_support'),
+                  onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HelpSupportScreen())),
+                ),
                 _MenuItem(
                   icon: Icons.language_rounded,
                   label: AppStrings.t(isArabic, 'language'),

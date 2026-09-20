@@ -21,20 +21,20 @@ class AppStrings {
     'sar': {'ar': 'ريال', 'en': 'SAR'},
 
     // ===== Onboarding =====
-    'onboard_title_1': {'ar': 'اكتشف أفضل الفنادق', 'en': 'Discover Top Hotels'},
+    'onboard_title_1': {'ar': 'مرحبًا بك في All Owners', 'en': 'Welcome to All Owners'},
     'onboard_desc_1': {
-      'ar': 'فنادق وشقق فندقية مختارة بعناية في أفضل المواقع',
-      'en': 'Carefully selected hotels and serviced apartments in prime locations'
+      'ar': 'المنصة الموثوقة لملاك الوحدات الفندقية والعقارات، وتجربة حجز ذكية للضيوف.',
+      'en': 'The Trusted Platform for Hotel Unit & Property Owners, with a Smart Booking Experience for Guests.'
     },
-    'onboard_title_2': {'ar': 'حجز سهل وسريع', 'en': 'Easy & Fast Booking'},
+    'onboard_title_2': {'ar': 'إدارة ممتلكاتك أصبحت أسهل', 'en': 'Managing your property made easy'},
     'onboard_desc_2': {
-      'ar': 'اختر تواريخك، قارن الأسعار، واحجز بضغطة واحدة',
-      'en': 'Pick your dates, compare prices, and book in one tap'
+      'ar': 'نوفر منصة متكاملة تمكّن الملاك من إدارة ممتلكاتهم ومتابعة الحجوزات، والإيرادات، والعقود، والصيانة والنظافة، والتواصل مع إدارات الفنادق وشركات التشغيل، بكل سهولة وأمان.',
+      'en': 'All Owners provides an integrated platform that enables property owners to manage their properties, track bookings, revenues, contracts, maintenance and housekeeping, and communicate with hotel management and operating companies.'
     },
-    'onboard_title_3': {'ar': 'دفع مرن وآمن', 'en': 'Flexible & Secure Payment'},
+    'onboard_title_3': {'ar': 'اكتشف إقامتك القادمة بسهولة', 'en': 'Discover your next stay with ease'},
     'onboard_desc_3': {
-      'ar': 'ادفع الآن إلكترونياً أو عند الوصول، كما يناسبك',
-      'en': 'Pay online now or at the property, whichever suits you'
+      'ar': 'كما تتيح للضيوف والوكلاء البحث عن الوحدات المتاحة، وإجراء الحجوزات والدفع الإلكتروني، وإدارة الإقامة بكل سهولة وأمان.\n\nكل ما تحتاجه لإدارة ممتلكاتك أو حجز إقامتك... في منصة واحدة آمنة وذكية.',
+      'en': 'It also allows guests and booking agents to search for available units, make reservations, complete secure online payments, and manage their stays with ease and confidence.\n\nEverything you need to manage your property or book your stay — all in one secure and smart platform.'
     },
     'get_started': {'ar': 'ابدأ الآن', 'en': 'Get Started'},
 
@@ -57,8 +57,8 @@ class AppStrings {
     // ===== Home =====
     'home': {'ar': 'الرئيسية', 'en': 'Home'},
     'hello': {'ar': 'مرحباً', 'en': 'Hello'},
-    'where_to': {'ar': 'وين بتحب تسافر؟', 'en': 'Where are you going?'},
-    'search_destination': {'ar': 'ابحث عن مدينة أو فندق', 'en': 'Search city or hotel'},
+    'where_to': {'ar': 'أين ترغب في الإقامة؟', 'en': 'Where would you like to stay?'},
+    'search_destination': {'ar': 'ابحث عن مدينة أو وحدة أو عقار', 'en': 'Search a city, unit or property'},
     'check_in': {'ar': 'تاريخ الوصول', 'en': 'Check-in'},
     'check_out': {'ar': 'تاريخ المغادرة', 'en': 'Check-out'},
     'categories': {'ar': 'التصنيفات', 'en': 'Categories'},
@@ -67,7 +67,7 @@ class AppStrings {
     'resorts': {'ar': 'منتجعات', 'en': 'Resorts'},
     'chalets': {'ar': 'شاليهات', 'en': 'Chalets'},
     'featured_deals': {'ar': 'عروض مميزة', 'en': 'Featured Deals'},
-    'newest_suites': {'ar': 'أحدث الأجنحة', 'en': 'Newest Suites'},
+    'newest_units': {'ar': 'أحدث الوحدات', 'en': 'Newest Units'},
     'my_commission': {'ar': 'عمولتي', 'en': 'My Commission'},
     'commission_setting': {'ar': 'إعداد العمولة الحالي', 'en': 'Current commission setting'},
     'set_by_admin_only': {'ar': 'يحدّدها الأدمن فقط', 'en': 'set by admin only'},
@@ -183,6 +183,61 @@ class AppStrings {
     'nav_favorites': {'ar': 'المفضلة', 'en': 'Favorites'},
     'nav_profile': {'ar': 'حسابي', 'en': 'Profile'},
 
+    // ===== Home (v2.3) =====
+    'greet_welcome': {'ar': 'مرحبًا بك', 'en': 'Welcome'},
+    'greet_hello': {'ar': 'مرحبًا', 'en': 'Hello'},
+    'main_destinations': {'ar': 'الوجهات الرئيسية', 'en': 'Top Destinations'},
+    'discover_by_type': {'ar': 'اكتشف حسب النوع', 'en': 'Discover by type'},
+    'cat_hotel_units': {'ar': 'الوحدات الفندقية', 'en': 'Hotel Units'},
+    'cat_furnished': {'ar': 'شقق مفروشة', 'en': 'Furnished Apartments'},
+    'cat_properties': {'ar': 'عقارات', 'en': 'Properties'},
+    'city_makkah': {'ar': 'مكة', 'en': 'Makkah'},
+    'city_madinah': {'ar': 'المدينة', 'en': 'Madinah'},
+    'city_jeddah': {'ar': 'جدة', 'en': 'Jeddah'},
+    'city_riyadh': {'ar': 'الرياض', 'en': 'Riyadh'},
+    'owner_hotels': {'ar': 'فنادق بوحدات ملاك', 'en': 'Hotels with Owner Units'},
+    'owner_hotels_desc': {
+      'ar': 'فنادق تضم وحدات مملوكة لأفراد ومتاحة للحجز عبر المنصة',
+      'en': 'Hotels with individually owned units, available to book through the platform'
+    },
+    'hotel_available': {'ar': 'متاح للحجز', 'en': 'Available'},
+    'hotel_soon': {'ar': 'قريبًا', 'en': 'Soon'},
+    'hotel_soon_msg': {
+      'ar': 'هذا الفندق سيكون متاحًا للحجز قريبًا',
+      'en': 'This hotel will be available for booking soon'
+    },
+    'owner_tagline': {'ar': 'إدارة ممتلكاتك أصبحت أسهل', 'en': 'Managing your properties just got easier'},
+
+    // ===== About / Help (v2.3) =====
+    'about_desc_1': {
+      'ar': 'All Owners هي المنصة الموثوقة لملاك الوحدات والعقارات، وتجربة حجز ذكية للضيوف.',
+      'en': 'All Owners is the trusted platform for property owners, providing a smart and seamless booking experience for guests.'
+    },
+    'about_desc_2': {
+      'ar': 'توفر المنصة حلولًا متكاملة لإدارة الوحدات والعقارات، والحجوزات، والإيرادات، والعقود، والصيانة والنظافة والخدمات، مع إمكانية التواصل بين الملاك وإدارات الفنادق وشركات التشغيل في منصة واحدة آمنة وذكية.',
+      'en': 'The platform offers integrated solutions for managing units and properties, bookings, revenues, contracts, maintenance, housekeeping, and services, while enabling seamless communication between property owners, hotel management, and operating companies—all in one secure and intelligent platform.'
+    },
+    'about_desc_3': {
+      'ar': 'كما تتيح للضيوف ووكلاء الحجز البحث عن الوحدات المتاحة، وإجراء الحجوزات، والدفع الإلكتروني، وإدارة الإقامة بكل سهولة وأمان.',
+      'en': 'For guests and booking agents, All Owners makes it easy to discover available units, make reservations, complete secure online payments, and manage stays with convenience and confidence.'
+    },
+    'about_closing': {
+      'ar': 'All Owners — كل ما تحتاجه لإدارة ممتلكاتك أو حجز إقامتك، في منصة واحدة.',
+      'en': 'All Owners — Everything you need to manage your property or book your stay, all in one platform.'
+    },
+    'support_intro': {
+      'ar': 'فريق All Owners جاهز لمساعدتك. تواصل معنا عبر إحدى الطرق التالية:',
+      'en': 'The All Owners team is here to help. Reach us through any of the following:'
+    },
+    'support_call': {'ar': 'اتصال هاتفي', 'en': 'Phone call'},
+    'support_whatsapp': {'ar': 'واتساب', 'en': 'WhatsApp'},
+    'support_email': {'ar': 'البريد الإلكتروني', 'en': 'Email'},
+    'support_not_set': {
+      'ar': 'بيانات الدعم غير متوفرة حاليًا',
+      'en': 'Support details are not available yet'
+    },
+    'meal_multi_hint': {'ar': 'يمكنك اختيار أكثر من وجبة', 'en': 'You can select more than one meal'},
+
     // ===== Hotel Services =====
     'available_services': {'ar': 'الخدمات المتاحة', 'en': 'Available Services'},
     'hotel_services': {'ar': 'خدمات الفندق', 'en': 'Hotel Services'},
@@ -191,7 +246,7 @@ class AppStrings {
       'ar': 'اطلب فني للإصلاحات داخل الغرفة',
       'en': 'Request a technician for in-room repairs'
     },
-    'housekeeping': {'ar': 'الهاوس كيبنج', 'en': 'Housekeeping'},
+    'housekeeping': {'ar': 'النظافة', 'en': 'Cleaning'},
     'housekeeping_desc': {
       'ar': 'اطلب تنظيف الغرفة أو تغيير المناشف',
       'en': 'Request room cleaning or fresh towels'
@@ -322,6 +377,8 @@ class AppStrings {
     'status_open': {'ar': 'مفتوح', 'en': 'Open'},
     'status_in_progress': {'ar': 'قيد التنفيذ', 'en': 'In Progress'},
     'status_closed': {'ar': 'مغلق', 'en': 'Closed'},
+    'status_done': {'ar': 'تمت', 'en': 'Done'},
+    'status_rejected': {'ar': 'مرفوض', 'en': 'Rejected'},
     'status_pending': {'ar': 'قيد الانتظار', 'en': 'Pending'},
     'status_confirmed': {'ar': 'مؤكد', 'en': 'Confirmed'},
     'status_completed': {'ar': 'مكتمل', 'en': 'Completed'},

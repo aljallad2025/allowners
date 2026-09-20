@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../theme/app_colors.dart';
@@ -6,12 +7,13 @@ import '../../theme/app_dimens.dart';
 import '../../utils/app_strings.dart';
 import '../../utils/locale_provider.dart';
 import '../../utils/session_provider.dart';
+import '../../utils/tr.dart';
 import '../../models/hotel_model.dart';
 import '../../services/hotel_service.dart';
 import '../auth/login_screen.dart';
 import 'booking_success_screen.dart';
 
-enum PaymentMethod { online, atHotel }
+enum PaymentMethod { online, atHotel, ownerTransfer }
 
 class BookingScreen extends ConsumerStatefulWidget {
   final HotelModel hotel;
@@ -39,13 +41,21 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
   final _cvvController = TextEditingController();
   final _cardNameController = TextEditingController();
   final _guestIdNumberController = TextEditingController();
+  final _customerNameController = TextEditingController();
+  final _customerPhoneController = TextEditingController();
 
   bool _isSubmitting = false;
+
+  // بيانات حساب مالك الوحدة للتحويل المباشر (تُعبّأ من حساب المالك — null لو ما فعّلها)
+  Map<String, dynamic>? _ownerBank;
+
+  // وكيل الحجوزات يحجز باسم عميل (الدفع بالفندق وتُحتسب عمولته تلقائياً)
+  bool get _isAgent => ref.read(sessionProvider).user?.isBookingAgent ?? false;
 
   // إضافات الوحدة الحقيقية (سرير/وجبات/أخرى) يلي حددها المالك — لو في وحدة محددة
   List<Map<String, dynamic>> _unitAddons = [];
   bool _loadingAddons = false;
-  int? _selectedMealAddonId; // null = بدون وجبات
+  final Set<int> _selectedMealAddonIds = {}; // فارغة = بدون وجبات — يمكن اختيار أكثر من وجبة (فطور + غداء ...)
   final Set<int> _selectedOtherAddonIds = {};
 
   int get _nights => _checkOut.difference(_checkIn).inDays.clamp(1, 365);
@@ -76,8 +86,8 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
 
   double get _addonsTotal {
     double sum = 0;
-    if (_selectedMealAddonId != null) {
-      final meal = _unitAddons.firstWhere((a) => a['id'] == _selectedMealAddonId, orElse: () => {});
+    for (final id in _selectedMealAddonIds) {
+      final meal = _unitAddons.firstWhere((a) => a['id'] == id, orElse: () => {});
       if (meal.isNotEmpty) sum += _addonLineTotal(meal);
     }
     for (final id in _selectedOtherAddonIds) {
@@ -87,10 +97,33 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
     return sum;
   }
 
+  /// السرير الإضافي على مستوى الفندق (حجز بدون وحدة محددة) — السيرفر يحسبه سعر × عدد الليالي،
+  /// فيجب أن يظهر في إجمالي التطبيق أيضاً (كان يُحتسب بالسيرفر ولا يظهر في التطبيق)
+  double get _hotelExtraBedTotal {
+    if (!_extraBed || widget.unitId != null) return 0;
+    final price = widget.hotel.extraBedPrice;
+    return price == null ? 0 : price * _nights;
+  }
+
   @override
   void initState() {
     super.initState();
-    if (widget.unitId != null) _loadAddons();
+    if (_isAgent) _paymentMethod = PaymentMethod.atHotel;
+    if (widget.unitId != null) {
+      _loadAddons();
+      _loadOwnerBank();
+    }
+  }
+
+  Future<void> _loadOwnerBank() async {
+    if (!ref.read(sessionProvider).isLoggedIn) return;
+    try {
+      final unit = await _hotelService.getUnitDetail(widget.unitId!);
+      final bank = unit['owner_bank'];
+      if (mounted && bank is Map) setState(() => _ownerBank = bank.cast<String, dynamic>());
+    } catch (_) {
+      // خيار التحويل اختياري — الحجز يكمل بدونه
+    }
   }
 
   Future<void> _loadAddons() async {
@@ -112,6 +145,8 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
     _cvvController.dispose();
     _cardNameController.dispose();
     _guestIdNumberController.dispose();
+    _customerNameController.dispose();
+    _customerPhoneController.dispose();
     super.dispose();
   }
 
@@ -159,6 +194,14 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
       }
     }
 
+    if (_isAgent &&
+        (_customerNameController.text.trim().isEmpty || _customerPhoneController.text.trim().isEmpty)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(tr(isArabic, 'الرجاء إدخال اسم العميل ورقم جواله', 'Please enter the customer name and phone'))),
+      );
+      return;
+    }
+
     if (_guestIdNumberController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(AppStrings.t(isArabic, 'guest_id_number_required'))),
@@ -169,7 +212,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
     setState(() => _isSubmitting = true);
     try {
       final addonIds = <int>[
-        if (_selectedMealAddonId != null) _selectedMealAddonId!,
+        ..._selectedMealAddonIds,
         ..._selectedOtherAddonIds,
       ];
       final booking = await _hotelService.createBooking(
@@ -178,7 +221,11 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
         checkIn: _checkIn,
         checkOut: _checkOut,
         guests: _guests,
-        paymentMethod: _paymentMethod == PaymentMethod.online ? 'online' : 'at_hotel',
+        paymentMethod: _isAgent
+            ? 'at_hotel'
+            : (_paymentMethod == PaymentMethod.online
+                ? 'online'
+                : (_paymentMethod == PaymentMethod.ownerTransfer ? 'owner_transfer' : 'at_hotel')),
         cardNumber: _paymentMethod == PaymentMethod.online
             ? _cardNumberController.text.replaceAll(RegExp(r'\D'), '')
             : null,
@@ -186,6 +233,8 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
         extraBed: _extraBed,
         addonIds: addonIds.isNotEmpty ? addonIds : null,
         guestIdNumber: _guestIdNumberController.text.trim(),
+        customerName: _isAgent ? _customerNameController.text.trim() : null,
+        customerPhone: _isAgent ? _customerPhoneController.text.trim() : null,
       );
 
       if (!mounted) return;
@@ -224,7 +273,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
     final hotel = widget.hotel;
 
     final roomPrice = _basePricePerNight * _nights;
-    final addonsTotal = _addonsTotal;
+    final addonsTotal = _addonsTotal + _hotelExtraBedTotal;
     final taxes = (roomPrice + addonsTotal) * 0.15;
     final total = roomPrice + addonsTotal + taxes;
 
@@ -349,9 +398,26 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                       ],
                     ),
                     const SizedBox(height: AppDimens.md),
+                    if (_isAgent) ...[
+                      TextField(
+                        controller: _customerNameController,
+                        decoration: InputDecoration(labelText: tr(isArabic, 'اسم العميل', 'Customer name')),
+                      ),
+                      const SizedBox(height: AppDimens.sm),
+                      TextField(
+                        controller: _customerPhoneController,
+                        keyboardType: TextInputType.phone,
+                        decoration: InputDecoration(labelText: tr(isArabic, 'جوال العميل', 'Customer phone')),
+                      ),
+                      const SizedBox(height: AppDimens.sm),
+                    ],
                     TextField(
                       controller: _guestIdNumberController,
-                      decoration: InputDecoration(labelText: AppStrings.t(isArabic, 'guest_id_number')),
+                      decoration: InputDecoration(
+                        labelText: _isAgent
+                            ? tr(isArabic, 'رقم هوية / جواز العميل', 'Customer ID / passport number')
+                            : AppStrings.t(isArabic, 'guest_id_number'),
+                      ),
                     ),
                     const SizedBox(height: AppDimens.lg),
 
@@ -365,19 +431,32 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                       else ...[
                         if (_mealAddons.isNotEmpty) ...[
                           Text(AppStrings.t(isArabic, 'meal_type'), style: textTheme.titleMedium),
+                          const SizedBox(height: 2),
+                          Text(
+                            AppStrings.t(isArabic, 'meal_multi_hint'),
+                            style: textTheme.bodySmall?.copyWith(color: AppColors.textMuted),
+                          ),
                           const SizedBox(height: AppDimens.sm),
                           _MealOptionTile(
                             label: AppStrings.t(isArabic, 'meal_option_none'),
                             priceLabel: AppStrings.t(isArabic, 'free'),
-                            selected: _selectedMealAddonId == null,
-                            onTap: () => setState(() => _selectedMealAddonId = null),
+                            selected: _selectedMealAddonIds.isEmpty,
+                            onTap: () => setState(() => _selectedMealAddonIds.clear()),
                           ),
-                          ..._mealAddons.map((m) => _MealOptionTile(
-                                label: isArabic ? (m['name_ar']?.toString() ?? '') : (m['name_en']?.toString() ?? ''),
-                                priceLabel: '+${_addonLineTotal(m).toStringAsFixed(0)} ${AppStrings.t(isArabic, "sar")}',
-                                selected: _selectedMealAddonId == m['id'],
-                                onTap: () => setState(() => _selectedMealAddonId = m['id'] as int),
-                              )),
+                          ..._mealAddons.map((m) {
+                            final mealId = m['id'] as int;
+                            return _MealOptionTile(
+                              label: isArabic ? (m['name_ar']?.toString() ?? '') : (m['name_en']?.toString() ?? ''),
+                              priceLabel: '+${_addonLineTotal(m).toStringAsFixed(0)} ${AppStrings.t(isArabic, "sar")}',
+                              selected: _selectedMealAddonIds.contains(mealId),
+                              multi: true,
+                              onTap: () => setState(() {
+                                if (!_selectedMealAddonIds.remove(mealId)) {
+                                  _selectedMealAddonIds.add(mealId);
+                                }
+                              }),
+                            );
+                          }),
                           const SizedBox(height: AppDimens.lg),
                         ],
                         if (_otherAddons.isNotEmpty) ...[
@@ -495,19 +574,34 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
 
                     Text(AppStrings.t(isArabic, 'payment_method'), style: textTheme.titleMedium),
                     const SizedBox(height: AppDimens.sm),
-                    _PaymentOption(
-                      icon: Icons.credit_card_rounded,
-                      label: AppStrings.t(isArabic, 'pay_online'),
-                      selected: _paymentMethod == PaymentMethod.online,
-                      onTap: () => setState(() => _paymentMethod = PaymentMethod.online),
-                    ),
-                    const SizedBox(height: AppDimens.sm),
+                    if (!_isAgent) ...[
+                      _PaymentOption(
+                        icon: Icons.credit_card_rounded,
+                        label: AppStrings.t(isArabic, 'pay_online'),
+                        selected: _paymentMethod == PaymentMethod.online,
+                        onTap: () => setState(() => _paymentMethod = PaymentMethod.online),
+                      ),
+                      const SizedBox(height: AppDimens.sm),
+                    ],
                     _PaymentOption(
                       icon: Icons.storefront_outlined,
                       label: AppStrings.t(isArabic, 'pay_at_hotel'),
                       selected: _paymentMethod == PaymentMethod.atHotel,
                       onTap: () => setState(() => _paymentMethod = PaymentMethod.atHotel),
                     ),
+                    if (!_isAgent && _ownerBank != null) ...[
+                      const SizedBox(height: AppDimens.sm),
+                      _PaymentOption(
+                        icon: Icons.account_balance_outlined,
+                        label: tr(isArabic, 'تحويل مباشر لحساب المالك', "Direct transfer to the owner's account"),
+                        selected: _paymentMethod == PaymentMethod.ownerTransfer,
+                        onTap: () => setState(() => _paymentMethod = PaymentMethod.ownerTransfer),
+                      ),
+                    ],
+                    if (_paymentMethod == PaymentMethod.ownerTransfer && _ownerBank != null) ...[
+                      const SizedBox(height: AppDimens.md),
+                      _OwnerBankCard(bank: _ownerBank!, isArabic: isArabic),
+                    ],
 
                     if (_paymentMethod == PaymentMethod.online) ...[
                       const SizedBox(height: AppDimens.md),
@@ -734,9 +828,16 @@ class _MealOptionTile extends StatelessWidget {
   final String label;
   final String priceLabel;
   final bool selected;
+  final bool multi; // true = مربع اختيار (متعدد) ، false = دائرة (خيار واحد)
   final VoidCallback onTap;
 
-  const _MealOptionTile({required this.label, required this.priceLabel, required this.selected, required this.onTap});
+  const _MealOptionTile({
+    required this.label,
+    required this.priceLabel,
+    required this.selected,
+    required this.onTap,
+    this.multi = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -754,7 +855,9 @@ class _MealOptionTile extends StatelessWidget {
         child: Row(
           children: [
             Icon(
-              selected ? Icons.radio_button_checked_rounded : Icons.radio_button_off_rounded,
+              multi
+                  ? (selected ? Icons.check_box_rounded : Icons.check_box_outline_blank_rounded)
+                  : (selected ? Icons.radio_button_checked_rounded : Icons.radio_button_off_rounded),
               color: selected ? AppColors.goldDark : AppColors.textMuted,
               size: 20,
             ),
@@ -763,6 +866,69 @@ class _MealOptionTile extends StatelessWidget {
             Text(priceLabel, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.goldDark, fontWeight: FontWeight.w600)),
           ],
         ),
+      ),
+    );
+  }
+}
+
+
+/// بيانات حساب المالك للتحويل المباشر — تُعبّأ تلقائياً من حساب مالك الوحدة (للعرض والنسخ فقط)
+class _OwnerBankCard extends StatelessWidget {
+  final Map<String, dynamic> bank;
+  final bool isArabic;
+  const _OwnerBankCard({required this.bank, required this.isArabic});
+
+  Widget _row(BuildContext context, String label, String value, {bool copy = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 96,
+            child: Text(label, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textMuted)),
+          ),
+          Expanded(
+            child: Text(value, style: Theme.of(context).textTheme.titleSmall, textDirection: copy ? TextDirection.ltr : null),
+          ),
+          if (copy)
+            IconButton(
+              visualDensity: VisualDensity.compact,
+              icon: const Icon(Icons.copy_rounded, size: 18),
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: value));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(tr(isArabic, 'تم نسخ الآيبان', 'IBAN copied'))),
+                );
+              },
+            ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppDimens.md),
+      decoration: BoxDecoration(
+        color: AppColors.gold.withOpacity(0.10),
+        borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+        border: Border.all(color: AppColors.gold.withOpacity(0.5)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _row(context, tr(isArabic, 'البنك', 'Bank'), bank['bank_name']?.toString() ?? ''),
+          _row(context, tr(isArabic, 'صاحب الحساب', 'Account holder'), bank['bank_account_name']?.toString() ?? ''),
+          _row(context, 'IBAN', bank['bank_iban']?.toString() ?? '', copy: true),
+          const SizedBox(height: 6),
+          Text(
+            tr(isArabic,
+                'حوّل المبلغ الإجمالي لهذا الحساب، وسيؤكد المالك حجزك بعد استلام التحويل.',
+                'Transfer the total amount to this account — the owner will confirm your booking once the transfer is received.'),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary, height: 1.5),
+          ),
+        ],
       ),
     );
   }

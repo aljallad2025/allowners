@@ -4,6 +4,9 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_dimens.dart';
 import '../../utils/app_strings.dart';
 import '../../utils/locale_provider.dart';
+import '../../utils/tr.dart';
+import '../../services/hotel_service.dart';
+import 'booking_picker.dart';
 
 class MealRequestScreen extends ConsumerStatefulWidget {
   const MealRequestScreen({super.key});
@@ -14,9 +17,12 @@ class MealRequestScreen extends ConsumerStatefulWidget {
 
 class _MealRequestScreenState extends ConsumerState<MealRequestScreen> {
   final _notesController = TextEditingController();
-  String? _selectedMeal;
+  final Set<String> _selectedMeals = {}; // يمكن اختيار أكثر من وجبة
   bool _mealError = false;
+  bool _roomError = false;
   bool _submitting = false;
+  int? _bookingId;
+  final _roomController = TextEditingController();
 
   static const _meals = [
     (key: 'breakfast', icon: Icons.coffee_outlined),
@@ -27,19 +33,43 @@ class _MealRequestScreenState extends ConsumerState<MealRequestScreen> {
   @override
   void dispose() {
     _notesController.dispose();
+    _roomController.dispose();
     super.dispose();
   }
 
   void _submit(bool isArabic) {
-    final mealEmpty = _selectedMeal == null;
-    setState(() => _mealError = mealEmpty);
-    if (mealEmpty) return;
+    final mealEmpty = _selectedMeals.isEmpty;
+    final roomEmpty = _roomController.text.trim().isEmpty;
+    setState(() {
+      _mealError = mealEmpty;
+      _roomError = roomEmpty;
+    });
+    if (mealEmpty || roomEmpty || _bookingId == null) return;
 
+    _send(isArabic);
+  }
+
+  /// الطلب يصل للفندق (إيميل + إشعار + قائمة طلبات إدارة الفندق) — بعد تأكيد الحجز
+  Future<void> _send(bool isArabic) async {
     setState(() => _submitting = true);
-
-    Future.delayed(const Duration(milliseconds: 500), () {
+    try {
+      await HotelService().requestMeals(
+        bookingId: _bookingId!,
+        roomNumber: _roomController.text.trim(),
+        mealTypes: _selectedMeals.toList(),
+        notes: _notesController.text.trim(),
+      );
       if (!mounted) return;
       setState(() => _submitting = false);
+      _showSuccess(isArabic);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _submitting = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+    }
+  }
+
+  void _showSuccess(bool isArabic) {
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
@@ -83,8 +113,8 @@ class _MealRequestScreenState extends ConsumerState<MealRequestScreen> {
           ],
         ),
       );
-    });
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -120,9 +150,25 @@ class _MealRequestScreenState extends ConsumerState<MealRequestScreen> {
                 AppStrings.t(isArabic, 'order_meal_desc'),
                 style: textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
               ),
-              const SizedBox(height: AppDimens.xl),
+              const SizedBox(height: AppDimens.lg),
+
+              ConfirmedBookingPicker(onChanged: (id) => setState(() => _bookingId = id)),
+              const SizedBox(height: AppDimens.md),
+              TextField(
+                controller: _roomController,
+                decoration: InputDecoration(
+                  labelText: AppStrings.t(isArabic, 'room_number'),
+                  errorText: _roomError ? AppStrings.t(isArabic, 'room_number_required') : null,
+                ),
+              ),
+              const SizedBox(height: AppDimens.lg),
 
               Text(AppStrings.t(isArabic, 'meal_type'), style: textTheme.titleSmall),
+              const SizedBox(height: 2),
+              Text(
+                AppStrings.t(isArabic, 'meal_multi_hint'),
+                style: textTheme.bodySmall?.copyWith(color: AppColors.textMuted),
+              ),
               const SizedBox(height: AppDimens.sm),
               Row(
                 children: [
@@ -132,9 +178,10 @@ class _MealRequestScreenState extends ConsumerState<MealRequestScreen> {
                       child: _MealOption(
                         icon: _meals[i].icon,
                         label: AppStrings.t(isArabic, _meals[i].key),
-                        isSelected: _selectedMeal == _meals[i].key,
+                        isSelected: _selectedMeals.contains(_meals[i].key),
                         onTap: () => setState(() {
-                          _selectedMeal = _meals[i].key;
+                          final key = _meals[i].key;
+                          if (!_selectedMeals.remove(key)) _selectedMeals.add(key);
                           _mealError = false;
                         }),
                       ),
@@ -168,7 +215,7 @@ class _MealRequestScreenState extends ConsumerState<MealRequestScreen> {
                 width: double.infinity,
                 height: AppDimens.buttonHeight,
                 child: ElevatedButton(
-                  onPressed: _submitting ? null : () => _submit(isArabic),
+                  onPressed: (_submitting || _bookingId == null) ? null : () => _submit(isArabic),
                   child: _submitting
                       ? const SizedBox(
                           width: 22,

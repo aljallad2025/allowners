@@ -24,6 +24,7 @@ class HotelServicesScreen extends ConsumerWidget {
           icon: Icons.build_outlined,
           title: AppStrings.t(isArabic, 'maintenance'),
           description: AppStrings.t(isArabic, 'maintenance_desc'),
+          serviceType: 'maintenance',
         ),
       ),
       (
@@ -34,6 +35,7 @@ class HotelServicesScreen extends ConsumerWidget {
           icon: Icons.cleaning_services_outlined,
           title: AppStrings.t(isArabic, 'housekeeping'),
           description: AppStrings.t(isArabic, 'housekeeping_desc'),
+          serviceType: 'housekeeping',
         ),
       ),
       (
@@ -50,6 +52,7 @@ class HotelServicesScreen extends ConsumerWidget {
           icon: Icons.event_busy_outlined,
           title: AppStrings.t(isArabic, 'cancellation_request'),
           description: AppStrings.t(isArabic, 'cancellation_request_desc'),
+          serviceType: 'cancellation',
         ),
       ),
     ];

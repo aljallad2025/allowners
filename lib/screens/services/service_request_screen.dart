@@ -4,17 +4,22 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_dimens.dart';
 import '../../utils/app_strings.dart';
 import '../../utils/locale_provider.dart';
+import '../../utils/tr.dart';
+import '../../services/hotel_service.dart';
+import 'booking_picker.dart';
 
 class ServiceRequestScreen extends ConsumerStatefulWidget {
   final IconData icon;
   final String title;
   final String description;
+  final String serviceType; // maintenance | housekeeping | cancellation
 
   const ServiceRequestScreen({
     super.key,
     required this.icon,
     required this.title,
     required this.description,
+    this.serviceType = 'other',
   });
 
   @override
@@ -26,6 +31,7 @@ class _ServiceRequestScreenState extends ConsumerState<ServiceRequestScreen> {
   final _detailsController = TextEditingController();
   bool _roomError = false;
   bool _submitting = false;
+  int? _bookingId;
 
   @override
   void dispose() {
@@ -37,13 +43,32 @@ class _ServiceRequestScreenState extends ConsumerState<ServiceRequestScreen> {
   void _submit(bool isArabic) {
     final roomEmpty = _roomController.text.trim().isEmpty;
     setState(() => _roomError = roomEmpty);
-    if (roomEmpty) return;
+    if (roomEmpty || _bookingId == null) return;
 
+    _send(isArabic);
+  }
+
+  /// الطلب يصل للفندق (إيميل + إشعار) — والنظافة/الصيانة تدخل قوائم إدارة الفندق
+  Future<void> _send(bool isArabic) async {
     setState(() => _submitting = true);
-
-    Future.delayed(const Duration(milliseconds: 500), () {
+    try {
+      await HotelService().requestService(
+        bookingId: _bookingId!,
+        roomNumber: _roomController.text.trim(),
+        serviceType: widget.serviceType,
+        description: _detailsController.text.trim(),
+      );
       if (!mounted) return;
       setState(() => _submitting = false);
+      _showSuccess(isArabic);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _submitting = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+    }
+  }
+
+  void _showSuccess(bool isArabic) {
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
@@ -87,8 +112,8 @@ class _ServiceRequestScreenState extends ConsumerState<ServiceRequestScreen> {
           ],
         ),
       );
-    });
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -124,7 +149,10 @@ class _ServiceRequestScreenState extends ConsumerState<ServiceRequestScreen> {
                 widget.description,
                 style: textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
               ),
-              const SizedBox(height: AppDimens.xl),
+              const SizedBox(height: AppDimens.lg),
+
+              ConfirmedBookingPicker(onChanged: (id) => setState(() => _bookingId = id)),
+              const SizedBox(height: AppDimens.lg),
 
               Text(AppStrings.t(isArabic, 'room_number'), style: textTheme.titleSmall),
               const SizedBox(height: AppDimens.sm),
@@ -154,7 +182,7 @@ class _ServiceRequestScreenState extends ConsumerState<ServiceRequestScreen> {
                 width: double.infinity,
                 height: AppDimens.buttonHeight,
                 child: ElevatedButton(
-                  onPressed: _submitting ? null : () => _submit(isArabic),
+                  onPressed: (_submitting || _bookingId == null) ? null : () => _submit(isArabic),
                   child: _submitting
                       ? const SizedBox(
                           width: 22,

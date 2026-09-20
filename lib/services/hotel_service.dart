@@ -122,12 +122,14 @@ class HotelService {
     required DateTime checkIn,
     required DateTime checkOut,
     required int guests,
-    required String paymentMethod, // online | at_hotel
+    required String paymentMethod, // online | at_hotel | owner_transfer
     String? cardNumber,
     String mealType = 'none', // none | breakfast | lunch | dinner | all
     bool extraBed = false,
     List<int>? addonIds,
     String? guestIdNumber,
+    String? customerName, // وكيل الحجوزات: اسم العميل
+    String? customerPhone, // وكيل الحجوزات: جوال العميل
   }) async {
     try {
       final res = await _dio.post('/bookings/create.php', data: {
@@ -142,6 +144,8 @@ class HotelService {
         if (addonIds != null && addonIds.isNotEmpty) 'addon_ids': addonIds,
         if (cardNumber != null) 'card_number': cardNumber,
         'guest_id_number': guestIdNumber ?? '',
+        if (customerName != null) 'customer_name': customerName,
+        if (customerPhone != null) 'customer_phone': customerPhone,
       });
       return (res.data['booking'] as Map).cast<String, dynamic>();
     } on DioException catch (e) {
@@ -153,6 +157,78 @@ class HotelService {
     try {
       final res = await _dio.get('/bookings/my.php');
       return (res.data['bookings'] as List).cast<Map<String, dynamic>>();
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  /// إلغاء حجز (ضيف / وكيل) — للحجز المعلّق أو المؤكد قبل يوم الوصول
+  Future<void> cancelBooking(int bookingId) async {
+    try {
+      await _dio.post('/bookings/manage.php', data: {'booking_id': bookingId, 'action': 'cancel'});
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  /// تعديل حجز (تواريخ / ضيوف / بيانات العميل) مع إعادة حساب السعر من السيرفر
+  Future<Map<String, dynamic>> updateBooking({
+    required int bookingId,
+    DateTime? checkIn,
+    DateTime? checkOut,
+    int? guests,
+    String? guestName,
+    String? guestPhone,
+  }) async {
+    try {
+      final res = await _dio.post('/bookings/manage.php', data: {
+        'booking_id': bookingId,
+        'action': 'update',
+        if (checkIn != null) 'check_in': _fmt(checkIn),
+        if (checkOut != null) 'check_out': _fmt(checkOut),
+        if (guests != null) 'guests': guests,
+        if (guestName != null) 'guest_name': guestName,
+        if (guestPhone != null) 'guest_phone': guestPhone,
+      });
+      return (res.data['booking'] as Map).cast<String, dynamic>();
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  /// طلب وجبات (اختيار متعدد) — يصل للفندق، بعد تأكيد الحجز فقط
+  Future<void> requestMeals({
+    required int bookingId,
+    required String roomNumber,
+    required List<String> mealTypes, // breakfast | lunch | dinner
+    String? notes,
+  }) async {
+    try {
+      await _dio.post('/services/meal-request.php', data: {
+        'booking_id': bookingId,
+        'room_number': roomNumber,
+        'meal_types': mealTypes,
+        if (notes != null && notes.isNotEmpty) 'notes': notes,
+      });
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  /// طلب خدمة (نظافة، مناشف ...) — يصل للفندق
+  Future<void> requestService({
+    required int bookingId,
+    required String roomNumber,
+    required String serviceType,
+    String? description,
+  }) async {
+    try {
+      await _dio.post('/services/request.php', data: {
+        'booking_id': bookingId,
+        'room_number': roomNumber,
+        'service_type': serviceType,
+        if (description != null && description.isNotEmpty) 'description': description,
+      });
     } on DioException catch (e) {
       throw ApiException.fromDioError(e);
     }

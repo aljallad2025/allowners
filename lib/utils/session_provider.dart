@@ -82,6 +82,16 @@ class SessionNotifier extends StateNotifier<SessionState> {
     state = state.copyWith(user: user);
   }
 
+  Future<void> uploadAvatar(String filePath) async {
+    final user = await _authService.uploadAvatar(filePath);
+    updateLocalUser(user);
+  }
+
+  Future<void> removeAvatar() async {
+    final user = await _authService.removeAvatar();
+    updateLocalUser(user);
+  }
+
   Future<void> updateProfile({
     required String fullName,
     String? phone,

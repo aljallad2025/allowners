@@ -62,6 +62,37 @@ class AuthService {
     }
   }
 
+  /// تغيير الصورة الشخصية — لكل الحسابات (ضيف / مالك / وكيل / إدارة فندق)
+  Future<AppUser> uploadAvatar(String filePath) async {
+    try {
+      final form = FormData.fromMap({'avatar': await MultipartFile.fromFile(filePath)});
+      final res = await _dio.post(
+        '/user/avatar.php',
+        data: form,
+        options: Options(sendTimeout: const Duration(seconds: 60), receiveTimeout: const Duration(seconds: 60)),
+      );
+      return _storeUser(res.data['user']);
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  Future<AppUser> removeAvatar() async {
+    try {
+      final res = await _dio.post('/user/avatar.php', data: FormData.fromMap({'remove': '1'}));
+      return _storeUser(res.data['user']);
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  Future<AppUser> _storeUser(dynamic json) async {
+    final user = AppUser.fromJson((json as Map).cast<String, dynamic>());
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('user_json', jsonEncode(user.toJson()));
+    return user;
+  }
+
   Future<void> logout() async {
     try {
       await _dio.post('/auth/logout.php');

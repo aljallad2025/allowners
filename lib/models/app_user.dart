@@ -36,4 +36,6 @@ class AppUser {
       };
 
   bool get isOwner => role == 'owner';
+  bool get isBookingAgent => role == 'booking_agent';
+  bool get isHotelManager => role == 'hotel_manager';
 }

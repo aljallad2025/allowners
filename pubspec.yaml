@@ -1,7 +1,7 @@
 name: allowners
 description: "All Owners - تطبيق حجوزات الفنادق والشقق الفندقية"
 publish_to: 'none'
-version: 2.2.1+14
+version: 2.3.0+14
 
 environment:
   sdk: '>=3.3.0 <4.0.0'
@@ -53,14 +53,15 @@ flutter_launcher_icons:
   adaptive_icon_foreground: "assets/images/icon_foreground.png"
 
 flutter_native_splash:
-  color: "#FFFFFF"
-  image: assets/images/logo.png
-  color_dark: "#01122E"
-  image_dark: assets/images/logo.png
+  # نفس خلفية الشعار الرسمي الجديد (assets/images/official_logo_ar.png) ليتطابق الـ splash الأصلي مع شاشة البداية
+  color: "#01173A"
+  image: assets/images/official_logo_ar.png
+  color_dark: "#01173A"
+  image_dark: assets/images/official_logo_ar.png
   android_12:
     image: assets/images/icon_foreground.png
     icon_background_color: "#01122E"
-    color: "#FFFFFF"
-    color_dark: "#01122E"
+    color: "#01173A"
+    color_dark: "#01173A"
   ios: false
   web: false

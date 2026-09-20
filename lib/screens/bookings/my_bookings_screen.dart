@@ -6,8 +6,10 @@ import '../../theme/app_dimens.dart';
 import '../../utils/app_strings.dart';
 import '../../utils/locale_provider.dart';
 import '../../utils/session_provider.dart';
+import '../../utils/tr.dart';
 import '../../services/hotel_service.dart';
 import '../auth/login_screen.dart';
+import 'edit_booking_dialog.dart';
 
 class MyBookingsScreen extends ConsumerStatefulWidget {
   const MyBookingsScreen({super.key});
@@ -63,6 +65,60 @@ class _MyBookingsScreenState extends ConsumerState<MyBookingsScreen>
         _error = e.toString();
         _isLoading = false;
       });
+    }
+  }
+
+  void _snack(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
+  Future<void> _cancelBooking(Map<String, dynamic> b, bool isArabic) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(tr(isArabic, 'إلغاء الحجز', 'Cancel booking')),
+        content: Text(tr(isArabic, 'هل أنت متأكد من إلغاء هذا الحجز؟', 'Are you sure you want to cancel this booking?')),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(tr(isArabic, 'رجوع', 'Back'))),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(tr(isArabic, 'إلغاء الحجز', 'Cancel booking'), style: const TextStyle(color: AppColors.danger)),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await _hotelService.cancelBooking((b['id'] as num).toInt());
+      if (!mounted) return;
+      _snack(tr(isArabic, 'تم إلغاء الحجز', 'Booking cancelled'));
+      _loadBookings();
+    } catch (e) {
+      if (!mounted) return;
+      _snack(e.toString());
+    }
+  }
+
+  Future<void> _editBooking(Map<String, dynamic> b, bool isArabic) async {
+    final isAgentBooking = b['agent_id'] != null;
+    final edit = await showEditBookingDialog(context, b, isArabic, editGuestInfo: isAgentBooking);
+    if (edit == null) return;
+
+    try {
+      final res = await _hotelService.updateBooking(
+        bookingId: (b['id'] as num).toInt(),
+        checkIn: edit.checkIn,
+        checkOut: edit.checkOut,
+        guests: edit.guests,
+        guestName: isAgentBooking ? edit.guestName : null,
+        guestPhone: isAgentBooking ? edit.guestPhone : null,
+      );
+      if (!mounted) return;
+      _snack(tr(isArabic, 'تم تعديل الحجز — الإجمالي الجديد ${res['total']} ريال', 'Booking updated — new total ${res['total']} SAR'));
+      _loadBookings();
+    } catch (e) {
+      if (!mounted) return;
+      _snack(e.toString());
     }
   }
 
@@ -175,6 +231,8 @@ class _MyBookingsScreenState extends ConsumerState<MyBookingsScreen>
       itemBuilder: (context, index) {
         final b = items[index];
         final status = b['status']?.toString() ?? 'pending';
+        final canEdit = b['can_edit'] == true;
+        final canCancel = b['can_cancel'] == true;
         return Padding(
           padding: const EdgeInsets.only(bottom: AppDimens.md),
           child: Container(
@@ -184,7 +242,9 @@ class _MyBookingsScreenState extends ConsumerState<MyBookingsScreen>
               borderRadius: BorderRadius.circular(AppDimens.radiusLg),
               border: Border.all(color: AppColors.cardBorder),
             ),
-            child: Row(
+            child: Column(
+              children: [
+                Row(
               children: [
                 Container(
                   width: 56,
@@ -223,6 +283,36 @@ class _MyBookingsScreenState extends ConsumerState<MyBookingsScreen>
                   child: Text(_statusLabel(status, isArabic),
                       style: TextStyle(color: _statusColor(status), fontSize: 10, fontWeight: FontWeight.w600)),
                 ),
+              ],
+            ),
+                if (canEdit || canCancel) ...[
+                  const SizedBox(height: AppDimens.sm),
+                  Row(
+                    children: [
+                      if (canEdit)
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () => _editBooking(b, isArabic),
+                            icon: const Icon(Icons.edit_calendar_outlined, size: 18),
+                            label: Text(tr(isArabic, 'تعديل الحجز', 'Edit booking')),
+                          ),
+                        ),
+                      if (canEdit && canCancel) const SizedBox(width: AppDimens.sm),
+                      if (canCancel)
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () => _cancelBooking(b, isArabic),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppColors.danger,
+                              side: const BorderSide(color: AppColors.danger),
+                            ),
+                            icon: const Icon(Icons.cancel_outlined, size: 18),
+                            label: Text(tr(isArabic, 'إلغاء الحجز', 'Cancel booking')),
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),
